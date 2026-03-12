@@ -1,0 +1,180 @@
+<div class="page-wrapper">
+    <div class="page-header">
+        <div>
+            <h2 class="page-title"><i class="bi bi-clipboard2-check me-2"></i>Gestionar Solicitudes</h2>
+            <p class="page-subtitle">Flujo completo: aprobar → asignar tribunal → programar → evaluar</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-refresh" (click)="cargar()" title="Recargar">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="btn-reporte" (click)="descargarCronogramaPdf()" title="PDF Cronograma">
+                <i class="bi bi-calendar-pdf me-1"></i>Cronograma PDF
+            </button>
+            <button class="btn-reporte btn-reporte-stats" (click)="descargarEstadisticasPdf()" title="PDF Estadísticas">
+                <i class="bi bi-bar-chart-line me-1"></i>Estadísticas PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Guía de flujo del coordinador -->
+    <div class="flujo-bar">
+        <div class="flujo-paso"><span class="paso-num">1</span><span class="paso-label">Aprobar</span></div>
+        <i class="bi bi-arrow-right flujo-sep"></i>
+        <div class="flujo-paso"><span class="paso-num">2</span><span class="paso-label">Tribunal</span></div>
+        <i class="bi bi-arrow-right flujo-sep"></i>
+        <div class="flujo-paso"><span class="paso-num">3</span><span class="paso-label">Cronograma</span></div>
+        <i class="bi bi-arrow-right flujo-sep"></i>
+        <div class="flujo-paso"><span class="paso-num">4</span><span class="paso-label">Evaluar</span></div>
+        <i class="bi bi-arrow-right flujo-sep"></i>
+        <div class="flujo-paso"><span class="paso-num">5</span><span class="paso-label">Acta</span></div>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div class="filtros-bar">
+        <button class="filtro-btn" [class.activo]="filtroEstado===''"          (click)="setFiltro('')">Todas ({{ solicitudes.length }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='ENVIADA'"   (click)="setFiltro('ENVIADA')">Por revisar ({{ contar('ENVIADA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='APROBADA'"  (click)="setFiltro('APROBADA')">Aprobadas ({{ contar('APROBADA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='RECHAZADA'" (click)="setFiltro('RECHAZADA')">Rechazadas ({{ contar('RECHAZADA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='CREADA'"    (click)="setFiltro('CREADA')">Borradores ({{ contar('CREADA') }})</button>
+    </div>
+
+    <div class="loading-state" *ngIf="cargando"><div class="spinner"></div><p>Cargando...</p></div>
+
+    <div class="table-card" *ngIf="!cargando">
+        <table class="tabla">
+            <thead><tr>
+                <th>#</th>
+                <th>Estudiante</th>
+                <th>Título del Tema</th>
+                <th>Modalidad</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Observaciones</th>
+                <th class="text-center">Acciones del coordinador</th>
+            </tr></thead>
+            <tbody>
+            <tr *ngFor="let s of solicitudesFiltradas">
+                <td><strong class="id-cell">#{{ s.id }}</strong></td>
+                <td>
+                    <div class="estudiante-info">
+                        <div class="avatar">{{ inicialNombre(s) }}</div>
+                        <div>
+                            <span class="nombre">{{ s.estudiante?.usuario?.nombre }} {{ s.estudiante?.usuario?.apellido }}</span>
+                            <span class="carrera">{{ s.estudiante?.carrera }}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="titulo-cell" [title]="s.tituloTema">{{ s.tituloTema }}</td>
+                <td><span class="modalidad-tag">{{ s.modalidad }}</span></td>
+                <td>{{ s.fechaRegistro | date:'dd/MM/yy' }}</td>
+                <td><span class="badge" [ngClass]="getBadge(s.estado)">{{ s.estado }}</span></td>
+                <td>
+                    <div class="obs-cell">
+                        <span class="obs-empty" *ngIf="!s.observaciones">—</span>
+                        <ng-container *ngIf="s.observaciones">
+                            <span class="obs-text">{{ s.observaciones | slice:0:30 }}{{ s.observaciones.length > 30 ? '... ' : ' ' }}<button class="btn-ver-mas" (click)="verObservaciones(s.tituloTema, s.observaciones)">Ver más</button></span>
+                        </ng-container>
+                    </div>
+                </td>
+                <td>
+                    <div class="acciones-cell">
+
+                        <!-- ENVIADA → Paso 1: Aprobar / Rechazar -->
+                        <button class="btn-accion btn-aprobar"  *ngIf="s.estado==='ENVIADA'" (click)="aprobar(s.id)">
+                            <i class="bi bi-check-circle-fill"></i> Aprobar
+                        </button>
+                        <button class="btn-accion btn-rechazar" *ngIf="s.estado==='ENVIADA'" (click)="abrirModalRechazo(s.id)">
+                            <i class="bi bi-x-circle-fill"></i> Rechazar
+                        </button>
+
+                        <!-- APROBADA → Pasos 2, 3, 4 disponibles -->
+                        <ng-container *ngIf="s.estado==='APROBADA'">
+                            <!-- Paso 2: Asignar tribunal y tutor (RF-06) -->
+                            <button class="btn-accion btn-tribunal"
+                                    [routerLink]="['/dashboard/admin/asignar-jurados', s.id]"
+                                    title="Asignar Presidente, Vocales y Tutor">
+                                <i class="bi bi-people-fill"></i> Tribunal
+                            </button>
+                            <!-- Paso 3: Programar cronograma -->
+                            <button class="btn-accion btn-programar"
+                                    [routerLink]="['/dashboard/admin/cronograma', s.id]">
+                                <i class="bi bi-calendar-plus"></i> Fecha
+                            </button>
+                            <!-- Paso 4: Evaluar con ponderación 60/40 (RF-09) -->
+                            <button class="btn-accion btn-evaluar"
+                                    [routerLink]="['/dashboard/admin/evaluar', s.id]">
+                                <i class="bi bi-star-fill"></i> Evaluar
+                            </button>
+                            <!-- Ver anteproyecto PDF -->
+                            <button class="btn-accion btn-ver-pdf"
+                                    [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
+                            </button>
+                        </ng-container>
+
+                        <!-- Ver PDF también en ENVIADA -->
+                        <button class="btn-accion btn-ver-pdf" *ngIf="s.estado==='ENVIADA'"
+                                [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                            <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                        </button>
+
+                        <span class="sin-accion" *ngIf="s.estado==='RECHAZADA' || s.estado==='CREADA'">—</span>
+                    </div>
+                </td>
+            </tr>
+            <tr *ngIf="solicitudesFiltradas.length === 0">
+                <td colspan="7" class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <p>No hay solicitudes con este filtro.</p>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Modal Notificación ─────────────────────────────────── -->
+<div class="noti-modal-backdrop" *ngIf="modalObs !== null" (click)="cerrarModal()">
+    <div class="noti-modal" (click)="$event.stopPropagation()">
+        <div class="noti-modal-header">
+            <i class="bi bi-exclamation-triangle-fill noti-icon"></i>
+            <span class="noti-title">Notificación</span>
+        </div>
+        <div class="noti-modal-body">{{ modalObs }}</div>
+        <div class="noti-modal-footer">
+            <button class="btn-cerrar-noti" (click)="cerrarModal()">
+                <i class="bi bi-x me-1"></i>Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal Rechazo con Observación ──────────────────────── -->
+<div class="noti-modal-backdrop" *ngIf="modalRechazo" (click)="cerrarModalRechazo()">
+    <div class="noti-modal modal-rechazo" (click)="$event.stopPropagation()">
+        <div class="noti-modal-header rechazo-header">
+            <i class="bi bi-x-circle-fill noti-icon icon-rechazo"></i>
+            <span class="noti-title">Rechazar Solicitud</span>
+        </div>
+        <div class="noti-modal-body">
+            <p class="rechazo-label">Ingresa el motivo del rechazo <span class="req">*</span></p>
+            <textarea
+                    class="rechazo-textarea"
+                    [(ngModel)]="observacionRechazo"
+                    placeholder="Ej: Falta documentación, título no cumple requisitos..."
+                    rows="4"
+                    maxlength="500">
+      </textarea>
+            <small class="char-count">{{ observacionRechazo.length }}/500</small>
+        </div>
+        <div class="noti-modal-footer rechazo-footer">
+            <button class="btn-cerrar-noti" (click)="cerrarModalRechazo()">
+                <i class="bi bi-x me-1"></i>Cancelar
+            </button>
+            <button class="btn-confirmar-rechazo" (click)="confirmarRechazo()">
+                <i class="bi bi-x-circle-fill me-1"></i>Confirmar Rechazo
+            </button>
+        </div>
+    </div>
+</div>

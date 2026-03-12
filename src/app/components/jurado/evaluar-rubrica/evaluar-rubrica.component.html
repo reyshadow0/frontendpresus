@@ -1,0 +1,236 @@
+<div class="page-wrapper">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">
+        <i class="bi bi-star-half me-2"></i>Evaluación por Rúbrica
+      </h2>
+      <p class="page-subtitle" *ngIf="solicitud">
+        {{ solicitud.estudiante?.usuario?.nombre }} {{ solicitud.estudiante?.usuario?.apellido }}
+        — <em>{{ solicitud.tituloTema }}</em>
+      </p>
+    </div>
+    <button class="btn-back" routerLink="/dashboard/jurado/mis-asignaciones">
+      <i class="bi bi-arrow-left"></i> Mis asignaciones
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="cargando">
+    <div class="spinner"></div>
+    <p>Cargando datos...</p>
+  </div>
+
+  <ng-container *ngIf="!cargando">
+
+    <!-- Sin asignación -->
+    <div class="alert-error" *ngIf="!juradoInfo">
+      <i class="bi bi-exclamation-octagon me-2"></i>
+      No estás asignado como jurado en esta pre-sustentación.
+    </div>
+
+    <ng-container *ngIf="juradoInfo">
+
+      <!-- Info del jurado -->
+      <div class="jurado-badge">
+        <span class="jb-rol">{{ juradoInfo.rol }}</span>
+        <span class="jb-sep">·</span>
+        <span class="jb-rubrica">{{ rubrica?.nombre }}</span>
+        <span class="jb-sep" *ngIf="evaluacionPrevia?.notaTotalJurado !== null && evaluacionPrevia?.notaTotalJurado !== undefined">·</span>
+        <span class="jb-nota" *ngIf="evaluacionPrevia?.notaTotalJurado !== null && evaluacionPrevia?.notaTotalJurado !== undefined">
+          Tu nota: <strong>{{ evaluacionPrevia?.notaTotalJurado?.toFixed(2) }} / 10</strong>
+        </span>
+      </div>
+
+      <!-- ── EVALUACIÓN YA REGISTRADA ───────────────────────────────────── -->
+      <div class="eval-registrada" *ngIf="evaluacionPrevia?.detalles?.length">
+
+        <div class="er-header">
+          <div class="er-title">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+            Evaluación registrada
+          </div>
+
+        </div>
+
+        <div class="tabla-criterios-result">
+          <div class="tcr-head">
+            <span>Aspecto</span>
+            <span>Nivel</span>
+            <span>Pts</span>
+          </div>
+          <div class="tcr-row" *ngFor="let d of evaluacionPrevia!.detalles">
+            <span class="tcr-nombre">
+              {{ d.nombreCriterio }}
+              <em class="tcr-max">/ {{ d.ponderacion }} pts</em>
+            </span>
+            <span class="tcr-escala-val">
+              <span class="escala-pill" [ngClass]="'e' + d.escala">
+                {{ d.escala }}% — {{ getLabelEscala(d.escala) }}
+              </span>
+            </span>
+            <span class="tcr-nota">{{ d.notaObtenida.toFixed(2) }}</span>
+          </div>
+          <div class="tcr-total">
+            <span>TOTAL</span>
+            <span></span>
+            <span class="nota-total-val">{{ evaluacionPrevia!.notaTotalJurado?.toFixed(2) }} / 10</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── FORMULARIO DE EVALUACIÓN ───────────────────────────────────── -->
+      <div class="eval-form-card" *ngIf="!evaluacionPrevia?.detalles?.length">
+
+        <div class="ef-intro">
+          <strong>Rúbrica para Predefensa — Trabajo de Integración Curricular</strong><br>
+          <span>Desarrollo del Trabajo de Titulación II · Décimo semestre – Carrera Software</span>
+        </div>
+
+        <!-- Criterios -->
+        <div class="criterios-lista">
+          <div class="criterio-card" *ngFor="let c of criteriosUI; let i = index">
+
+            <div class="cc-header">
+              <div class="cc-num">{{ i + 1 }}</div>
+              <div class="cc-info">
+                <h4 class="cc-nombre">
+                  {{ c.nombre }}
+                  <span class="cc-max-badge">Máx. {{ c.ponderacion }} {{ c.ponderacion === 1 ? 'punto' : 'puntos' }}</span>
+                </h4>
+                <p class="cc-desc">{{ c.descripcion }}</p>
+              </div>
+              <div class="cc-nota-parcial" [class.calculado]="c.escalaSeleccionada !== null">
+                <span class="cnp-num" *ngIf="c.escalaSeleccionada !== null">
+                  {{ notaCriterio(c)?.toFixed(2) }}
+                </span>
+                <span class="cnp-num placeholder" *ngIf="c.escalaSeleccionada === null">—</span>
+                <span class="cnp-label">pts</span>
+              </div>
+            </div>
+
+            <!-- Escalas: 4 botones con puntos reales -->
+            <div class="escalas-selector">
+              <button
+                *ngFor="let e of ESCALAS"
+                class="escala-btn"
+                [ngClass]="[e.color, c.escalaSeleccionada === e.valor ? 'selected' : '']"
+                (click)="seleccionarEscala(c, e.valor)"
+                type="button">
+                <span class="eb-pct">{{ e.valor }}%</span>
+                <span class="eb-desc">{{ e.etiqueta }}</span>
+                <span class="eb-pts">
+                  {{ (c.ponderacion * e.valor / 100) | number:'1.0-1' }} pts
+                </span>
+              </button>
+            </div>
+
+            <!-- Observación individual -->
+            <div class="cc-obs" *ngIf="c.escalaSeleccionada !== null">
+              <input
+                type="text"
+                [(ngModel)]="c.observaciones"
+                class="obs-input"
+                placeholder="Observación sobre {{ c.nombre }} (opcional)..." />
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Preview nota final -->
+        <div class="preview-nota-wrapper" [class.completo]="todosCriteriosEvaluados">
+          <div class="pn-formula">
+            <span *ngFor="let c of criteriosUI; let last = last">
+              <span *ngIf="c.escalaSeleccionada !== null" class="pn-item">
+                {{ c.nombre }}: {{ notaCriterio(c)?.toFixed(2) }}
+                <span *ngIf="!last" class="pn-plus"> + </span>
+              </span>
+              <span *ngIf="c.escalaSeleccionada === null" class="pn-pending">
+                [{{ c.nombre }}]<span *ngIf="!last"> + </span>
+              </span>
+            </span>
+          </div>
+          <div class="pn-resultado">
+            <div class="pn-nota"
+                 [class.aprobado]="resultadoPreview === 'APROBADO'"
+                 [class.reprobado]="resultadoPreview === 'REPROBADO'">
+              <span class="pn-num">{{ notaParcialPreview.toFixed(2) }}</span>
+              <span class="pn-denom">/ 10</span>
+            </div>
+            <div class="pn-etiqueta"
+                 [class.aprobado]="resultadoPreview === 'APROBADO'"
+                 [class.reprobado]="resultadoPreview === 'REPROBADO'"
+                 *ngIf="todosCriteriosEvaluados">
+              {{ resultadoPreview }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Observaciones generales -->
+        <div class="form-group mt-3">
+          <label class="form-label">OBSERVACIONES GENERALES DEL JURADO</label>
+          <textarea
+            [(ngModel)]="observacionesGenerales"
+            class="form-textarea"
+            rows="3"
+            placeholder="Retroalimentación global para el estudiante, sugerencias académicas...">
+          </textarea>
+        </div>
+
+        <!-- Botón guardar -->
+        <button
+          class="btn-guardar-eval"
+          [disabled]="!todosCriteriosEvaluados || enviando"
+          (click)="guardar()">
+          <i class="bi" [class.bi-check-circle]="!enviando"
+             [class.bi-arrow-clockwise]="enviando" [class.spin]="enviando"></i>
+          {{ enviando ? 'Guardando...' : 'Registrar evaluación' }}
+        </button>
+
+        <p class="hint-incompleto" *ngIf="!todosCriteriosEvaluados">
+          <i class="bi bi-info-circle me-1"></i>
+          Debes seleccionar una escala para todos los {{ criteriosUI.length }} criterios.
+        </p>
+      </div>
+
+      <!-- ── PANEL TRIBUNAL ─────────────────────────────────────────────── -->
+      <div class="tribunal-panel" *ngIf="evaluacionesTribunal.length > 0">
+        <h3 class="tp-title">
+          <i class="bi bi-people-fill me-2"></i>Estado del tribunal
+        </h3>
+        <div class="tribunal-grid">
+          <div class="tj-card"
+               *ngFor="let ev of evaluacionesTribunal"
+               [class.tj-evaluado]="ev.notaTotalJurado !== null"
+               [class.tj-pendiente]="ev.notaTotalJurado === null">
+            <div class="tj-header">
+              <span class="tj-rol">{{ ev.rolJurado }}</span>
+              <span class="tj-estado" [class.ok]="ev.notaTotalJurado !== null">
+                {{ ev.notaTotalJurado !== null ? '✓ Evaluado' : 'Pendiente' }}
+              </span>
+            </div>
+            <p class="tj-nombre">{{ ev.nombreJurado }}</p>
+            <div class="tj-nota" *ngIf="ev.notaTotalJurado !== null">
+              {{ ev.notaTotalJurado.toFixed(2) }} / 10
+            </div>
+          </div>
+        </div>
+
+        <div class="nota-promedio-tribunal"
+             *ngIf="evaluacionesTribunal[0]?.notaPromedioTribunal !== null &&
+                    evaluacionesTribunal[0]?.notaPromedioTribunal !== undefined">
+          <span class="npt-label">Nota promedio del tribunal (40%)</span>
+          <span class="npt-valor">
+            {{ evaluacionesTribunal[0]?.notaPromedioTribunal?.toFixed(2) }} / 10
+          </span>
+          <span class="npt-completo" *ngIf="evaluacionesTribunal[0]?.tribunalCompleto">
+            <i class="bi bi-shield-check"></i> Tribunal completo
+          </span>
+        </div>
+      </div>
+
+    </ng-container>
+  </ng-container>
+</div>

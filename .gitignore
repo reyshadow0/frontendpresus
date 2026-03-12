@@ -1,0 +1,18 @@
+# Editor-based HTTP Client requests
+http-client.private.env.json
+
+# Dependencies
+node_modules/
+
+# Angular cache
+.angular/
+
+# Build output
+dist/
+
+# IntelliJ
+.idea/
+
+# Environment files
+*.env
+.env

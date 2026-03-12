@@ -1,0 +1,95 @@
+<div class="page-wrapper">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title"><i class="bi bi-person-badge me-2"></i>Mis Asignaciones</h2>
+      <p class="page-subtitle">Pre-sustentaciones donde eres jurado o tutor</p>
+    </div>
+  </div>
+
+  <div class="loading-state" *ngIf="cargando"><div class="spinner"></div><p>Cargando...</p></div>
+
+  <ng-container *ngIf="!cargando">
+
+    <!-- JURADO -->
+    <div class="seccion">
+      <h3 class="seccion-titulo">
+        <i class="bi bi-people-fill me-2"></i>Como Jurado del Tribunal
+        <span class="seccion-count">{{ asignaciones.length }}</span>
+      </h3>
+
+      <div class="empty-state" *ngIf="asignaciones.length === 0">
+        <i class="bi bi-inbox"></i>
+        <p>No tienes asignaciones como jurado actualmente.</p>
+      </div>
+
+      <div class="cards-grid" *ngIf="asignaciones.length > 0">
+        <div class="asig-card" *ngFor="let a of asignaciones">
+          <div class="card-top">
+            <span class="rol-badge" [ngClass]="getRolColor(a.rol)">{{ getRolLabel(a.rol) }}</span>
+            <span class="estado-badge" [ngClass]="getEstadoBadge(a.solicitud?.estado)">{{ a.solicitud?.estado }}</span>
+          </div>
+          <p class="titulo-tema">{{ getTitulo(a) }}</p>
+          <p class="estudiante-nombre"><i class="bi bi-mortarboard me-1"></i>{{ getNombreEstudiante(a) }}</p>
+          <div class="card-actions">
+            <a class="btn-card btn-ver"
+               [routerLink]="['/dashboard/docente/anteproyecto', a.solicitud?.id]">
+              <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+            </a>
+            <!-- ★ NUEVO: botón evaluar rúbrica -->
+            <!-- Botón Evaluar: deshabilitado si el coordinador ya registró la nota final -->
+            <a class="btn-card btn-evaluar"
+               [class.btn-disabled]="yaEvaluada(a.solicitud?.id)"
+               [routerLink]="yaEvaluada(a.solicitud?.id) ? null : ['/dashboard/jurado/evaluar-rubrica', a.solicitud?.id]"
+               [title]="yaEvaluada(a.solicitud?.id) ? 'La evaluación final ya fue registrada' : 'Evaluar rúbrica'">
+              <i class="bi" [class.bi-check-circle-fill]="yaEvaluada(a.solicitud?.id)"
+                            [class.bi-star-half]="!yaEvaluada(a.solicitud?.id)"></i>
+              {{ yaEvaluada(a.solicitud?.id) ? 'Evaluado' : 'Evaluar' }}
+            </a>
+            <a class="btn-card btn-firmar"
+               [routerLink]="['/dashboard/docente/firmar-acta', a.solicitud?.id]">
+              <i class="bi bi-pen-fill"></i> Firmar Acta
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TUTOR -->
+    <div class="seccion mt-4">
+      <h3 class="seccion-titulo">
+        <i class="bi bi-person-check-fill me-2"></i>Como Tutor del Proyecto
+        <span class="seccion-count">{{ asignacionesTutor.length }}</span>
+      </h3>
+
+      <div class="empty-state" *ngIf="asignacionesTutor.length === 0">
+        <i class="bi bi-inbox"></i>
+        <p>No tienes tutorías asignadas actualmente.</p>
+      </div>
+
+      <div class="cards-grid" *ngIf="asignacionesTutor.length > 0">
+        <div class="asig-card tutor-card" *ngFor="let t of asignacionesTutor">
+          <div class="card-top">
+            <span class="rol-badge rol-tutor">Tutor</span>
+            <span class="estado-badge" [ngClass]="getEstadoBadge(t.solicitud?.estado)">{{ t.solicitud?.estado }}</span>
+          </div>
+          <p class="titulo-tema">{{ t.solicitud?.tituloTema }}</p>
+          <p class="estudiante-nombre">
+            <i class="bi bi-mortarboard me-1"></i>
+            {{ t.solicitud?.estudiante?.usuario?.nombre }} {{ t.solicitud?.estudiante?.usuario?.apellido }}
+          </p>
+          <div class="card-actions">
+            <a class="btn-card btn-ver"
+               [routerLink]="['/dashboard/docente/anteproyecto', t.solicitud?.id]">
+              <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+            </a>
+            <a class="btn-card btn-firmar"
+               [routerLink]="['/dashboard/docente/firmar-acta', t.solicitud?.id]">
+              <i class="bi bi-pen-fill"></i> Firmar Acta
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>
