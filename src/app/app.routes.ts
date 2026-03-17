@@ -19,6 +19,8 @@ import { FirmarActaDocenteComponent } from './components/docente/firmar-acta/fir
 import { EvaluarRubricaComponent } from './components/jurado/evaluar-rubrica/evaluar-rubrica.component';
 
 import { PerfilComponent } from './components/perfil/perfil.component';
+import { MisTutoriasComponent } from './components/tutorias/mis-tutorias/mis-tutorias.component';
+import { DetalleTutoriaComponent } from './components/tutorias/detalle-tutoria/detalle-tutoria.component';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -48,6 +50,9 @@ export const routes: Routes = [
             { path: 'jurado/evaluar-rubrica/:id',     component: EvaluarRubricaComponent,       canActivate: [authGuard] },
             { path: 'docente/anteproyecto/:id',       component: VerAnteproyectoComponent,      canActivate: [authGuard] },
             { path: 'docente/firmar-acta/:id',        component: FirmarActaDocenteComponent,    canActivate: [authGuard] },
+            // ── Tutorías ────────────────────────────────────────────────────
+            { path: 'tutorias/mis-tutorias',          component: MisTutoriasComponent,          canActivate: [authGuard] },
+            { path: 'tutorias/detalle/:id',           component: DetalleTutoriaComponent,       canActivate: [authGuard] },
         ]
     },
     { path: '**', redirectTo: 'login' }

@@ -95,8 +95,10 @@
                         <i class="bi {{ item.icon }}"></i>
                     </div>
                     <div class="card-label">
-                        <p>{{ item.titulo }}</p>
-                        <span class="card-desc" *ngIf="item.desc">{{ item.desc }}</span>
+                        <div class="card-text">
+                            <p class="card-titulo">{{ item.titulo }}</p>
+                            <span class="card-desc" *ngIf="item.desc">{{ item.desc }}</span>
+                        </div>
                         <i class="bi bi-chevron-right arrow-icon"></i>
                     </div>
                 </div>

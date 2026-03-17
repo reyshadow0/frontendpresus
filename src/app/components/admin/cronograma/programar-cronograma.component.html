@@ -26,6 +26,25 @@
 
   <div *ngIf="!cronogramaExistente">
 
+    <!-- ── Banners de validación previa ──────────────────────────────── -->
+    <div class="banner-validacion banner-error" *ngIf="validacionTribunal === 'error'">
+      <i class="bi bi-people-fill me-2"></i>
+      ⚠ {{ mensajeTribunal }}
+    </div>
+    <div class="banner-validacion banner-ok" *ngIf="validacionTribunal === 'ok'">
+      <i class="bi bi-people-fill me-2"></i>
+      ✓ Tribunal completo (Presidente, Vocal 1 y Vocal 2 asignados).
+    </div>
+
+    <div class="banner-validacion banner-error" *ngIf="validacionTutoria === 'error'">
+      <i class="bi bi-journal-bookmark-fill me-2"></i>
+      ⚠ {{ mensajeTutoria }}
+    </div>
+    <div class="banner-validacion banner-ok" *ngIf="validacionTutoria === 'ok'">
+      <i class="bi bi-journal-bookmark-fill me-2"></i>
+      ✓ Tutoría completada. El estudiante ha aprobado las 3 revisiones.
+    </div>
+
     <!-- RF-04: Botón asignación automática -->
     <div class="auto-assign-card">
       <div class="aa-info">
@@ -35,7 +54,7 @@
           <p class="aa-desc">El sistema buscará la primera franja disponible sin conflictos de sala, saltando fines de semana.</p>
         </div>
       </div>
-      <button class="btn-auto" (click)="asignarAutomatico()" [disabled]="asignandoAuto">
+      <button class="btn-auto" (click)="asignarAutomatico()" [disabled]="asignandoAuto || formularioBloqueado">
         <i class="bi" [class.bi-lightning-charge-fill]="!asignandoAuto"
            [class.bi-arrow-clockwise]="asignandoAuto" [class.spin]="asignandoAuto"></i>
         {{ asignandoAuto ? 'Buscando...' : 'Asignar automáticamente' }}
@@ -54,16 +73,19 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Fecha</label>
-          <input type="date" formControlName="fecha" class="input-field">
+          <input type="date" formControlName="fecha" class="input-field"
+                 [attr.disabled]="formularioBloqueado ? '' : null">
         </div>
         <div class="form-group">
           <label class="form-label">Hora</label>
-          <input type="time" formControlName="hora" class="input-field">
+          <input type="time" formControlName="hora" class="input-field"
+                 [attr.disabled]="formularioBloqueado ? '' : null">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Sala</label>
-        <select formControlName="salaId" class="input-field">
+        <select formControlName="salaId" class="input-field"
+                [attr.disabled]="formularioBloqueado ? '' : null">
           <option value="">Seleccionar sala...</option>
           <option *ngFor="let s of salas" [value]="s.id">{{ s.nombre }} (Cap. {{ s.capacidad }})</option>
         </select>
@@ -72,7 +94,7 @@
         <button type="button" class="btn-cancelar" routerLink="/dashboard/admin/revisar-solicitudes">
           <i class="bi bi-x-circle me-1"></i>Cancelar
         </button>
-        <button type="submit" class="btn-guardar" [disabled]="form.invalid || enviando">
+        <button type="submit" class="btn-guardar" [disabled]="form.invalid || enviando || formularioBloqueado">
           <i class="bi" [class.bi-check-circle]="!enviando"
              [class.bi-arrow-clockwise]="enviando" [class.spin]="enviando"></i>
           {{ enviando ? 'Guardando...' : 'Programar manualmente' }}

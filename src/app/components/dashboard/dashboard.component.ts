@@ -31,6 +31,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { titulo: 'Nueva Solicitud',     icon: 'bi-plus-circle',    image: 'img/NuevaSolicitud.png', route: '/dashboard/solicitudes/registrar',     desc: 'Crear una nueva solicitud de pre-sustentación' },
         { titulo: 'Mis Notas',           icon: 'bi-mortarboard',    image: 'img/MisNotas.png',       route: '/dashboard/notas',                     desc: 'Consulta tus calificaciones y resultados' },
         { titulo: 'Mi Horario',          icon: 'bi-calendar3',      image: 'img/MiHorario.png',      route: '/dashboard/horario',                   desc: 'Fecha y hora de tu pre-sustentación' },
+        { titulo: 'Tutorías',            icon: 'bi-journal-bookmark-fill', image: 'img/MisTramites.png', route: '/dashboard/tutorias/mis-tutorias', desc: 'Seguimiento de las fases de tutoría de tu anteproyecto' },
         { titulo: 'Notificaciones',      icon: 'bi-bell',           image: 'img/MisNotas.png',       route: '/dashboard/notificaciones',            desc: 'Mensajes y alertas del sistema' },
     ];
 
@@ -46,6 +47,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     modulosDocente = [
         { titulo: 'Mis Asignaciones',   icon: 'bi-person-badge',    image: 'img/MisTramites.png',  route: '/dashboard/jurado/mis-asignaciones',
             desc: 'Ver las pre-sustentaciones donde eres jurado o tutor' },
+        { titulo: 'Tutorías',           icon: 'bi-journal-bookmark-fill', image: 'img/MisTramites.png', route: '/dashboard/tutorias/mis-tutorias',
+            desc: 'Gestiona las fases de tutoría de los estudiantes asignados' },
         { titulo: 'Notificaciones',     icon: 'bi-bell',            image: 'img/MisNotas.png',     route: '/dashboard/notificaciones',
             desc: 'Mensajes y alertas del sistema' },
     ];
@@ -65,6 +68,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         '/dashboard/jurado/mis-asignaciones':    'Mis Asignaciones como Jurado',
         '/dashboard/docente/anteproyecto':       'Ver Anteproyecto',
         '/dashboard/docente/firmar-acta':        'Firmar Acta',
+        '/dashboard/tutorias/mis-tutorias':      'Mis Tutorías',
+        '/dashboard/tutorias/detalle':           'Detalle de Tutoría',
     };
 
     constructor(

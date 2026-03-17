@@ -380,6 +380,37 @@ body.dark-mode .preview-nota-wrapper { background: #0d1117 !important; border-co
 body.dark-mode .empty-card h4 { color: #8b949e !important; }
 body.dark-mode .info-banner { background: #0d1f3a !important; border-color: #388bfd !important; color: #79c0ff !important; }
 
+/* ── Banner estado tutoría ──────────────────────────────────────── */
+.banner-tutoria {
+    display: flex;
+    align-items: center;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+.banner-tutoria-error {
+    background: #fde8e8;
+    border: 1px solid #f87171;
+    color: #991b1b;
+}
+.banner-tutoria-ok {
+    background: #d1fae5;
+    border: 1px solid #6ee7b7;
+    color: #065f46;
+}
+body.dark-mode .banner-tutoria-error {
+    background: #2d0f0f !important;
+    border-color: #f85149 !important;
+    color: #f85149 !important;
+}
+body.dark-mode .banner-tutoria-ok {
+    background: #0f2e1a !important;
+    border-color: #3fb950 !important;
+    color: #3fb950 !important;
+}
+
 /* ── Asignar jurados — reglas específicas ───────────────────────── */
 body.dark-mode .asig-card        { background: #161b22 !important; border-color: #30363d !important; }
 body.dark-mode .jurado-item      { background: #0d1117 !important; border-color: #30363d !important; }

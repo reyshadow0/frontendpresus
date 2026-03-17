@@ -2,10 +2,14 @@ import { Component, ViewEncapsulation, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { CronogramaService } from '../../../services/cronograma.service';
 import { SalaService } from '../../../services/sala.service';
 import { SolicitudService } from '../../../services/solicitud.service';
 import { NotificationService } from '../../../services/notification.service';
+import { JuradoService } from '../../../services/jurado.service';
+import { TutoriaService } from '../../../services/tutoria.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
     encapsulation: ViewEncapsulation.None,
@@ -25,6 +29,12 @@ export class ProgramarCronogramaComponent implements OnInit {
     cronogramaExistente: any = null;
     errorConflicto: string | null = null;
 
+    // Validaciones previas al formulario
+    validacionTribunal: 'ok' | 'error' | null = null;  // null = verificando
+    validacionTutoria:  'ok' | 'error' | null = null;
+    mensajeTribunal = '';
+    mensajeTutoria  = '';
+
     constructor(
         private fb: FormBuilder,
         private route: ActivatedRoute,
@@ -32,7 +42,10 @@ export class ProgramarCronogramaComponent implements OnInit {
         private cronogramaService: CronogramaService,
         private salaService: SalaService,
         private solicitudService: SolicitudService,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private juradoService: JuradoService,
+        private tutoriaService: TutoriaService,
+        private authService: AuthService
     ) {}
 
     ngOnInit(): void {
@@ -45,12 +58,81 @@ export class ProgramarCronogramaComponent implements OnInit {
         this.cargarDatos();
     }
 
+    get formularioBloqueado(): boolean {
+        return this.validacionTribunal !== 'ok' || this.validacionTutoria !== 'ok';
+    }
+
     cargarDatos(): void {
         this.salaService.listar().subscribe(s => this.salas = s);
-        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => this.solicitud = s);
         this.cronogramaService.porSolicitud(this.solicitudId).subscribe({
             next: (c) => this.cronogramaExistente = c,
             error: () => this.cronogramaExistente = null
+        });
+
+        // Cargar solicitud y jurados en paralelo
+        forkJoin({
+            solicitud: this.solicitudService.obtenerPorId(this.solicitudId),
+            jurados:   this.juradoService.listarPorSolicitud(this.solicitudId)
+        }).subscribe({
+            next: ({ solicitud, jurados }) => {
+                this.solicitud = solicitud;
+                this.verificarTribunal(jurados);
+                this.verificarTutoria();
+            },
+            error: () => {
+                this.validacionTribunal = 'error';
+                this.mensajeTribunal = 'No se pudo cargar la información de la solicitud.';
+            }
+        });
+    }
+
+    private verificarTribunal(jurados: any[]): void {
+        const rolesRequeridos = ['PRESIDENTE', 'VOCAL_1', 'VOCAL_2'];
+        const rolesAsignados  = jurados.map(j => j.rol);
+        const completo = rolesRequeridos.every(r => rolesAsignados.includes(r));
+        if (completo) {
+            this.validacionTribunal = 'ok';
+        } else {
+            this.validacionTribunal = 'error';
+            const faltantes = rolesRequeridos
+                .filter(r => !rolesAsignados.includes(r))
+                .map(r => r.replace('_', ' '))
+                .join(', ');
+            this.mensajeTribunal = `El tribunal no está completo. Faltan: ${faltantes}.`;
+        }
+    }
+
+    private verificarTutoria(): void {
+        // Paso 1: obtener el Tutor (entidad) asignado a la solicitud
+        this.tutoriaService.obtenerTutorPorSolicitud(this.solicitudId).subscribe({
+            next: (tutor) => {
+                const tutorId = tutor?.id;
+                if (!tutorId) {
+                    this.validacionTutoria = 'error';
+                    this.mensajeTutoria = 'El estudiante no tiene tutor asignado aún.';
+                    return;
+                }
+                // Paso 2: verificar el resumen de la tutoría
+                this.tutoriaService.obtenerResumen(tutorId, this.authService.getUserId()).subscribe({
+                    next: (resumen) => {
+                        if (resumen.estadoTutoria === 'COMPLETADA') {
+                            this.validacionTutoria = 'ok';
+                        } else {
+                            this.validacionTutoria = 'error';
+                            this.mensajeTutoria =
+                                `La tutoría no ha sido completada (${resumen.fasesAprobadas}/3 revisiones aprobadas).`;
+                        }
+                    },
+                    error: () => {
+                        this.validacionTutoria = 'error';
+                        this.mensajeTutoria = 'El tutor está asignado pero la tutoría aún no ha iniciado (0/3 revisiones).';
+                    }
+                });
+            },
+            error: () => {
+                this.validacionTutoria = 'error';
+                this.mensajeTutoria = 'El estudiante no tiene tutor asignado aún.';
+            }
         });
     }
 

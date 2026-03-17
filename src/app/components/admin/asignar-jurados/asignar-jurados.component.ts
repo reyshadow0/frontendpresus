@@ -6,6 +6,8 @@ import { JuradoService } from '../../../services/jurado.service';
 import { DocenteService } from '../../../services/docente.service';
 import { SolicitudService } from '../../../services/solicitud.service';
 import { NotificationService } from '../../../services/notification.service';
+import { TutoriaService } from '../../../services/tutoria.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
     encapsulation: ViewEncapsulation.None,
@@ -24,6 +26,9 @@ export class AsignarJuradosComponent implements OnInit {
     todosDocentes: any[] = [];   // ← lista completa para dropdowns
     cargando = true;
     procesando = false;
+    tutoriaCompletada: boolean | null = null;  // null = verificando
+    tutoriaTieneAsignacion = false;            // false = sin tutor asignado aún
+    tutoriaFasesAprobadas = 0;
 
     formJurado!: FormGroup;
     formTutor!: FormGroup;
@@ -41,7 +46,9 @@ export class AsignarJuradosComponent implements OnInit {
         private juradoService: JuradoService,
         private docenteService: DocenteService,
         private solicitudService: SolicitudService,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private tutoriaService: TutoriaService,
+        private authService: AuthService
     ) {}
 
     ngOnInit(): void {
@@ -58,15 +65,54 @@ export class AsignarJuradosComponent implements OnInit {
 
     cargarDatos(): void {
         this.cargando = true;
-        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => this.solicitud = s);
+        this.solicitudService.obtenerPorId(this.solicitudId).subscribe({
+            next: (s) => {
+                this.solicitud = s;
+                this.verificarTutoria(this.solicitudId);
+            },
+            error: () => { this.tutoriaCompletada = false; }
+        });
         // Cargar todos los docentes para el selector
         this.docenteService.listar().subscribe({
             next: (d) => { this.todosDocentes = d; this.cargando = false; },
             error: () => { this.cargando = false; }
         });
         this.cargarJurados();
-        this.cargarTutor();
         this.cargarSugerencias();
+    }
+
+    verificarTutoria(solicitudId: number): void {
+        // Paso 1: obtener el Tutor (entidad) asignado a la solicitud
+        this.tutoriaService.obtenerTutorPorSolicitud(solicitudId).subscribe({
+            next: (tutor) => {
+                this.tutor = tutor;   // ← muestra el tutor activo en la sección izquierda
+                const tutorId: number = tutor?.id;
+                if (!tutorId) {
+                    this.tutoriaTieneAsignacion = false;
+                    this.tutoriaCompletada = false;
+                    return;
+                }
+                // Paso 2: obtener el resumen de la tutoría con el tutorId real
+                this.tutoriaService.obtenerResumen(tutorId, this.authService.getUserId()).subscribe({
+                    next: (resumen) => {
+                        this.tutoriaTieneAsignacion = true;
+                        this.tutoriaFasesAprobadas = resumen.fasesAprobadas;
+                        this.tutoriaCompletada = resumen.estadoTutoria === 'COMPLETADA';
+                    },
+                    error: () => {
+                        // El tutor existe pero aún no hay tutoría iniciada
+                        this.tutoriaTieneAsignacion = false;
+                        this.tutoriaCompletada = false;
+                    }
+                });
+            },
+            error: () => {
+                // No hay tutor asignado a esta solicitud
+                this.tutor = null;
+                this.tutoriaTieneAsignacion = false;
+                this.tutoriaCompletada = false;
+            }
+        });
     }
 
     cargarJurados(): void {
@@ -169,11 +215,11 @@ export class AsignarJuradosComponent implements OnInit {
         if (this.formTutor.invalid) return;
         this.procesando = true;
         this.juradoService.asignarTutor(this.solicitudId, this.formTutor.value.docenteId).subscribe({
-            next: (t) => {
-                this.tutor = t;
+            next: () => {
                 this.notification.success('Tutor asignado correctamente.', '✓ Asignado');
                 this.formTutor.reset();
                 this.cargarSugerencias();
+                this.verificarTutoria(this.solicitudId);
                 this.procesando = false;
             },
             error: (err) => {
