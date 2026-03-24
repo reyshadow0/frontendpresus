@@ -35,7 +35,7 @@
       <div class="estado-tribunal">
         <div class="tj-row" *ngFor="let j of jurados">
           <div class="tjr-info">
-            <span class="tjr-rol">{{ j.rol }}</span>
+            <span class="tjr-rol">{{ formatearRol(j.rol) }}</span>
             <span class="tjr-nombre">{{ j.docente?.usuario?.nombre }} {{ j.docente?.usuario?.apellido }}</span>
           </div>
           <div class="tjr-estado">

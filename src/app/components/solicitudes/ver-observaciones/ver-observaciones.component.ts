@@ -128,4 +128,14 @@ export class VerObservacionesComponent implements OnInit {
     volver(): void {
         this.router.navigate(['/dashboard/solicitudes/mis-tramites']);
     }
+
+    formatearRol(rol: string): string {
+        const map: Record<string, string> = {
+            'PRESIDENTE': 'Presidente',
+            'VOCAL_1': 'Vocal 1',
+            'VOCAL_2': 'Vocal 2',
+            'TUTOR': 'Tutor'
+        };
+        return map[rol] || rol;
+    }
 }

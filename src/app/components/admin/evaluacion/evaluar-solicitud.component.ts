@@ -237,4 +237,14 @@ export class EvaluarSolicitudComponent implements OnInit {
     this.modalObs = obs;
   }
   cerrarModal(): void { this.modalObs = null; }
+
+  formatearRol(rol: string): string {
+    const map: Record<string, string> = {
+        'PRESIDENTE': 'Presidente',
+        'VOCAL_1': 'Vocal 1',
+        'VOCAL_2': 'Vocal 2',
+        'TUTOR': 'Tutor'
+    };
+    return map[rol] || rol;
+  }
 }

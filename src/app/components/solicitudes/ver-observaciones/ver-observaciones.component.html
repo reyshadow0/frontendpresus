@@ -108,7 +108,7 @@
           <i class="bi bi-people-fill"></i>
         </div>
         <div class="obs-section-title">
-          <h3>{{ jurado.rol }}</h3>
+          <h3>{{ formatearRol(jurado.rol) }}</h3>
           <p class="obs-section-subtitle">{{ jurado.nombreJurado }}</p>
         </div>
         <div class="jurado-nota" *ngIf="jurado.notaJurado">
