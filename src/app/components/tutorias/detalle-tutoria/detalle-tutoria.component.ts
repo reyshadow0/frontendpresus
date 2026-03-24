@@ -1,10 +1,11 @@
-import { Component, ViewEncapsulation, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { TutoriaService } from '../../../services/tutoria.service';
+import { SolicitudService } from '../../../services/solicitud.service';
 import { AuthService } from '../../../services/auth.service';
 import { NotificationService } from '../../../services/notification.service';
 import { TutoriaFase, TutoriaMensaje, TutoriaResumen } from '../../../models/tutoria.model';
@@ -37,13 +38,19 @@ export class DetalleTutoriaComponent implements OnInit {
   aprobando = false;
   enviandoMensaje = false;
 
+  // Suspension de la solicitud
+  solicitudSuspendida = false;
+  solicitudMotivoSuspension = '';
+
   readonly SLOTS = [1, 2, 3];
 
   constructor(
     private route: ActivatedRoute,
     private tutoriaService: TutoriaService,
+    private solicitudService: SolicitudService,
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -66,6 +73,20 @@ export class DetalleTutoriaComponent implements OnInit {
         this.fases = fases;
         this.cargando = false;
 
+        if (resumen.solicitudId) {
+          this.solicitudService.obtenerPorId(resumen.solicitudId).subscribe({
+            next: (solicitud) => {
+              this.solicitudSuspendida = solicitud.estado === 'SUSPENDIDA';
+              this.solicitudMotivoSuspension = solicitud.motivoSuspension || '';
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              this.solicitudSuspendida = false;
+              this.cdr.markForCheck();
+            }
+          });
+        }
+
         if (fases.length) {
           if (seleccionarUltima) {
             const ultima = fases.reduce((p, c) => c.numeroFase > p.numeroFase ? c : p);
@@ -75,10 +96,12 @@ export class DetalleTutoriaComponent implements OnInit {
             if (actualizada) this.seleccionarFase(actualizada);
           }
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.notificationService.error('No se pudo cargar la tutoría.', 'Error');
         this.cargando = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -274,7 +297,14 @@ export class DetalleTutoriaComponent implements OnInit {
     });
   }
 
-  enviarMensaje(): void {
+    enviarMensaje(): void {
+    if (this.solicitudSuspendida) {
+      this.notificationService.error(
+        'Tu solicitud ha sido suspendida. No puedes enviar mensajes hasta que se levante la suspensión.',
+        'Solicitud suspendida'
+      );
+      return;
+    }
     if (!this.nuevoMensaje.trim() || !this.faseSeleccionada) return;
     this.enviandoMensaje = true;
     this.tutoriaService.enviarMensaje(
@@ -287,6 +317,7 @@ export class DetalleTutoriaComponent implements OnInit {
         this.faseSeleccionada!.mensajes.push(mensaje);
         this.nuevoMensaje = '';
         this.enviandoMensaje = false;
+        this.cdr.markForCheck();
         setTimeout(() => this.scrollToBottom(), 50);
       },
       error: (err) => {

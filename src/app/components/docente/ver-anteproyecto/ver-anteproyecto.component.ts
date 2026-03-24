@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -21,36 +21,38 @@ export class VerAnteproyectoComponent implements OnInit {
     pdfUrl: SafeResourceUrl | null = null;
     mostrarPdf = false;
 
-    /** Ruta de regreso según el rol del usuario */
     get backRoute(): string {
         const rol = this.authService.getRole();
         if (rol === 'ESTUDIANTE') return '/dashboard/solicitudes/mis-tramites';
         if (rol === 'ADMIN' || rol === 'COORDINADOR') return '/dashboard/admin/revisar-solicitudes';
-        return '/dashboard/jurado/mis-asignaciones'; // DOCENTE
+        return '/dashboard/jurado/mis-asignaciones';
     }
 
     constructor(
         private route: ActivatedRoute,
         private anteproyectoService: AnteproyectoService,
         private authService: AuthService,
-        private sanitizer: DomSanitizer
+        private sanitizer: DomSanitizer,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
         this.solicitudId = Number(this.route.snapshot.paramMap.get('id'));
         this.cargarAnteproyecto();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargarAnteproyecto(): void {
         this.cargando = true;
         this.error = '';
         this.anteproyectoService.obtenerPorSolicitud(this.solicitudId).subscribe({
-            next: (data) => { this.anteproyecto = data; this.cargando = false; },
+            next: (data) => { this.anteproyecto = data; this.cargando = false; this.cdr.markForCheck(); },
             error: (err) => {
                 this.error = err.status === 404
                     ? 'El estudiante aún no ha subido el anteproyecto.'
                     : 'Error al cargar el anteproyecto.';
                 this.cargando = false;
+                this.cdr.markForCheck();
             }
         });
     }
@@ -66,10 +68,12 @@ export class VerAnteproyectoComponent implements OnInit {
                 this.pdfUrl = this.sanitizer.bypassSecurityTrustResourceUrl(URL.createObjectURL(blob));
                 this.mostrarPdf = true;
                 this.cargando = false;
+                this.cdr.markForCheck();
             })
             .catch(() => {
                 this.error = 'No se pudo cargar el PDF. Verifica que el archivo exista.';
                 this.cargando = false;
+                this.cdr.markForCheck();
             });
     }
 

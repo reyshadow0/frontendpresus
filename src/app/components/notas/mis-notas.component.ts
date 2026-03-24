@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { EvaluacionService } from '../../services/evaluacion.service';
@@ -17,18 +17,23 @@ export class MisNotasComponent implements OnInit {
     cargando = true;
     estudianteId = 0;
 
-    constructor(private evalService: EvaluacionService, private authService: AuthService) {}
+    constructor(
+        private evalService: EvaluacionService,
+        private authService: AuthService,
+        private cdr: ChangeDetectorRef
+    ) {}
 
     ngOnInit(): void {
         this.estudianteId = this.authService.getUserId();
         this.cargar();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargar(): void {
         this.cargando = true;
         this.evalService.listarPorUsuario(this.estudianteId).subscribe({
-            next: (data) => { this.evaluaciones = data; this.cargando = false; },
-            error: () => { this.cargando = false; }
+            next: (data) => { this.evaluaciones = data; this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
     }
 

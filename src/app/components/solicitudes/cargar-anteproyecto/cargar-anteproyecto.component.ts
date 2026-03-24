@@ -1,7 +1,8 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AnteproyectoService } from '../../../services/anteproyecto.service';
+import { SolicitudService } from '../../../services/solicitud.service';
 import { NotificationService } from '../../../services/notification.service';
 
 @Component({
@@ -18,38 +19,55 @@ export class CargarAnteproyectoComponent implements OnInit {
     subiendo = false;
     intentoEnvio = false;
 
-    // Estado del anteproyecto existente
     anteproyectoExistente: any = null;
     cargando = true;
-    bloqueado = false;  // true cuando no se puede reemplazar el PDF
+    bloqueado = false;
+
+    solicitudSuspendida = false;
+    solicitudMotivoSuspension = '';
 
     constructor(
         private route: ActivatedRoute,
         private anteproyectoService: AnteproyectoService,
+        private solicitudService: SolicitudService,
         private notification: NotificationService,
-        private router: Router
+        private router: Router,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
         this.solicitudId = Number(this.route.snapshot.paramMap.get('id'));
         this.verificarEstado();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
-    /** Consulta si ya existe un anteproyecto y si está bloqueado para re-subida */
     verificarEstado(): void {
         this.cargando = true;
+        
+        this.solicitudService.obtenerPorId(this.solicitudId).subscribe({
+            next: (solicitud) => {
+                this.solicitudSuspendida = solicitud.estado === 'SUSPENDIDA';
+                this.solicitudMotivoSuspension = solicitud.motivoSuspension || '';
+                this.cdr.markForCheck();
+            },
+            error: () => {
+                this.solicitudSuspendida = false;
+                this.cdr.markForCheck();
+            }
+        });
+
         this.anteproyectoService.obtenerPorSolicitud(this.solicitudId).subscribe({
             next: (ap) => {
                 this.anteproyectoExistente = ap;
-                // Bloqueado si ya tiene PDF y el coordinador NO lo ha rechazado
                 this.bloqueado = ap && ap.archivoPdf && ap.estado !== 'RECHAZADO';
                 this.cargando = false;
+                this.cdr.markForCheck();
             },
             error: () => {
-                // 404 = no existe anteproyecto aún, se puede subir
                 this.anteproyectoExistente = null;
                 this.bloqueado = false;
                 this.cargando = false;
+                this.cdr.markForCheck();
             }
         });
     }
@@ -82,6 +100,13 @@ export class CargarAnteproyectoComponent implements OnInit {
     }
 
     subirArchivo(): void {
+        if (this.solicitudSuspendida) {
+            this.notification.error(
+                'Tu solicitud ha sido suspendida. No puedes subir archivos hasta que se liftingue la suspensión.',
+                'Solicitud suspendida'
+            );
+            return;
+        }
         if (this.bloqueado) {
             this.notification.error(
                 'No puedes reemplazar el PDF. El coordinador debe rechazar el anteproyecto para permitir una nueva carga.',
@@ -106,6 +131,7 @@ export class CargarAnteproyectoComponent implements OnInit {
                 this.subiendo = false;
                 const msg = err?.error?.mensaje || 'No se pudo enviar el anteproyecto.';
                 this.notification.error(msg, 'Error');
+                this.cdr.markForCheck();
             }
         });
     }

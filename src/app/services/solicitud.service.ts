@@ -37,4 +37,7 @@ export class SolicitudService {
     rechazarConObservacion(id: number, observacion: string): Observable<any> {
         return this.http.post(`${this.apiUrl}/rechazar-con-observacion/${id}`, { observacion });
     }
+    suspenderSolicitud(id: number, motivo: string): Observable<any> {
+        return this.http.post(`${this.apiUrl}/suspender/${id}`, { motivo });
+    }
 }

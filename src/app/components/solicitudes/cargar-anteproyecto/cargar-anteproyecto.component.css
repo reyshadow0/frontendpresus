@@ -73,6 +73,48 @@
     color: #16a34a;
 }
 
+/* ── Alerta de suspensión ─────────────────────────────────── */
+.alerta-suspension {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: #fffbeb;
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.alerta-suspension-icon {
+    font-size: 2rem;
+    color: #d97706;
+    flex-shrink: 0;
+}
+.alerta-suspension-content {
+    flex: 1;
+}
+.alerta-suspension-content strong {
+    display: block;
+    font-size: 1rem;
+    color: #92400e;
+    margin-bottom: 6px;
+}
+.alerta-suspension-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #78350f;
+    line-height: 1.5;
+}
+.alerta-suspension-motivo {
+    margin-top: 10px !important;
+    padding-top: 10px;
+    border-top: 1px solid #fcd34d;
+}
+.upload-zone--disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
 /* ── Bloqueo card ─────────────────────────────────────── */
 .bloqueo-card {
     background: #fff8e1;

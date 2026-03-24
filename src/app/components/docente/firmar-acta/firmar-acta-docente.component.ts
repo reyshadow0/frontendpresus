@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ActaService } from '../../../services/acta.service';
@@ -23,14 +23,9 @@ export class FirmarActaDocenteComponent implements OnInit {
     jurados: any[] = [];
     tutor: any = null;
     cargando = true;
-    firmando: string | null = null; // rol que se está firmando en este momento
+    firmando: string | null = null;
 
     docenteId: number | null = null;
-
-    /**
-     * Un docente puede tener MÚLTIPLES roles en la misma solicitud
-     * (p.ej. es VOCAL_1 y también TUTOR). Guardamos todos.
-     */
     misRoles: string[] = [];
 
     readonly ROLES_LABEL: Record<string, string> = {
@@ -47,48 +42,49 @@ export class FirmarActaDocenteComponent implements OnInit {
         private juradoService: JuradoService,
         private docenteService: DocenteService,
         private authService: AuthService,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
-        setTimeout(() => { if (this.cargando) this.cargando = false; }, 10000);
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
         this.solicitudId = Number(this.route.snapshot.paramMap.get('id'));
         const userId = this.authService.getUserId();
 
         this.docenteService.obtenerPorUsuario(userId).subscribe({
-            next: (docente) => { this.docenteId = docente.id; this.cargarDatos(); },
-            error: () => { this.cargando = false; this.notification.error('No se encontró el perfil de docente.', 'Error'); }
+            next: (docente) => { this.docenteId = docente.id; this.cargarDatos(); this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.notification.error('No se encontró el perfil de docente.', 'Error'); this.cdr.markForCheck(); }
         });
     }
 
     cargarDatos(): void {
-        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => this.solicitud = s);
+        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => { this.solicitud = s; this.cdr.markForCheck(); });
 
         this.juradoService.listarPorSolicitud(this.solicitudId).subscribe({
             next: (j) => {
                 this.jurados = j;
-                // Agregar todos los roles que tenga este docente en el tribunal
                 j.filter((x: any) => x.docente?.id === this.docenteId)
                     .forEach((x: any) => { if (!this.misRoles.includes(x.rol)) this.misRoles.push(x.rol); });
+                this.cdr.markForCheck();
             },
-            error: () => {}
+            error: () => { this.cdr.markForCheck(); }
         });
 
         this.juradoService.obtenerTutor(this.solicitudId).subscribe({
             next: (t) => {
                 this.tutor = t;
-                // Si este docente es el tutor, agregar rol TUTOR también
                 if (t?.docente?.id === this.docenteId && !this.misRoles.includes('TUTOR')) {
                     this.misRoles.push('TUTOR');
                 }
                 this.cargando = false;
+                this.cdr.markForCheck();
             },
-            error: () => { this.cargando = false; }
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
 
         this.actaService.porSolicitud(this.solicitudId).subscribe({
-            next: (a) => this.acta = a,
-            error: () => this.acta = null
+            next: (a) => { this.acta = a; this.cdr.markForCheck(); },
+            error: () => { this.acta = null; this.cdr.markForCheck(); }
         });
     }
 
@@ -103,12 +99,10 @@ export class FirmarActaDocenteComponent implements OnInit {
         return map[rol] ?? false;
     }
 
-    /** ¿Firmó al menos uno de sus roles? */
     get algunaFirmaHecha(): boolean {
         return this.misRoles.some(r => this.firmaEstado(r));
     }
 
-    /** ¿Todos sus roles ya fueron firmados? */
     get todosFirmados(): boolean {
         return this.misRoles.length > 0 && this.misRoles.every(r => this.firmaEstado(r));
     }
@@ -124,10 +118,12 @@ export class FirmarActaDocenteComponent implements OnInit {
                     : `Firma como ${this.ROLES_LABEL[rol]} registrada correctamente.`;
                 this.notification.success(msg, '✍️ Firmado');
                 this.firmando = null;
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 this.notification.error(err.error?.error || 'No se pudo registrar la firma.', 'Error');
                 this.firmando = null;
+                this.cdr.markForCheck();
             }
         });
     }

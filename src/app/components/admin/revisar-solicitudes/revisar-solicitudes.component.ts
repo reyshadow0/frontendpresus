@@ -26,6 +26,11 @@ export class RevisarSolicitudesComponent implements OnInit {
     solicitudIdRechazo: number | null = null;
     observacionRechazo = '';
 
+    // Modal de suspensión
+    modalSuspension = false;
+    solicitudIdSuspension: number | null = null;
+    motivoSuspension = '';
+
     constructor(
         private solicitudService: SolicitudService,
         private notification: NotificationService,
@@ -43,8 +48,8 @@ export class RevisarSolicitudesComponent implements OnInit {
     cargar(): void {
         this.cargando = true;
         this.solicitudService.listarSolicitudes().subscribe({
-            next: (data) => { this.solicitudes = data; this.cargando = false; },
-            error: () => { this.cargando = false; this.notification.error('Error al cargar solicitudes.', 'Error'); }
+            next: (data) => { this.solicitudes = data; this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.notification.error('Error al cargar solicitudes.', 'Error'); this.cdr.markForCheck(); }
         });
     }
 
@@ -66,16 +71,17 @@ export class RevisarSolicitudesComponent implements OnInit {
     aprobar(id: number): void {
         this.solicitudService.aprobarSolicitud(id).subscribe({
             next: () => {
-                // ★ Actualizar estado local inmediatamente sin recargar toda la lista
                 const sol = this.solicitudes.find(s => s.id === id);
-                if (sol) sol.estado = 'APROBADA';
+                if (sol) {
+                    sol.estado = 'APROBADA';
+                    this.cdr.markForCheck();
+                }
 
                 this.notification.success(
                     'Solicitud aprobada. Redirigiendo para asignar tribunal...',
                     '✓ Aprobada'
                 );
 
-                // ★ Navegar automáticamente a asignar tribunal tras 1.2s
                 setTimeout(() => {
                     this.router.navigate(['/dashboard/admin/asignar-jurados', id]);
                 }, 1200);
@@ -107,22 +113,60 @@ export class RevisarSolicitudesComponent implements OnInit {
 
         this.solicitudService.rechazarConObservacion(idArechazar, obsAGuardar).subscribe({
             next: () => {
-                // 1. Primero cerrar el modal
                 this.modalRechazo = false;
                 this.solicitudIdRechazo = null;
                 this.observacionRechazo = '';
-                this.cdr.detectChanges();
 
-                // 2. Actualizar lista local
                 const sol = this.solicitudes.find(s => s.id === idArechazar);
-                if (sol) { sol.estado = 'RECHAZADA'; sol.observaciones = obsAGuardar; }
+                if (sol) {
+                    sol.estado = 'RECHAZADA';
+                    sol.observaciones = obsAGuardar;
+                    this.cdr.markForCheck();
+                }
 
-                // 3. Mostrar toast después de que Angular cierre el modal
                 setTimeout(() => {
                     this.notification.success('Solicitud rechazada. El estudiante fue notificado.', '✓ Rechazada');
                 }, 100);
             },
             error: () => this.notification.error('No se pudo rechazar.', 'Error')
+        });
+    }
+
+    abrirModalSuspension(id: number): void {
+        this.solicitudIdSuspension = id;
+        this.motivoSuspension = '';
+        this.modalSuspension = true;
+    }
+
+    cerrarModalSuspension(): void {
+        this.modalSuspension = false;
+        this.solicitudIdSuspension = null;
+        this.motivoSuspension = '';
+    }
+
+    confirmarSuspension(): void {
+        if (!this.solicitudIdSuspension) return;
+        if (!this.motivoSuspension.trim()) {
+            this.notification.error('Debes ingresar el motivo de la suspensión.', 'Campo requerido');
+            return;
+        }
+        const id = this.solicitudIdSuspension;
+        const motivo = this.motivoSuspension;
+
+        this.solicitudService.suspenderSolicitud(id, motivo).subscribe({
+            next: () => {
+                this.modalSuspension = false;
+                this.solicitudIdSuspension = null;
+                this.motivoSuspension = '';
+                const sol = this.solicitudes.find(s => s.id === id);
+                if (sol) {
+                    sol.estado = 'SUSPENDIDA';
+                    sol.motivoSuspension = motivo;
+                    this.cdr.markForCheck();
+                }
+                this.notification.success('Solicitud suspendida. El estudiante fue notificado.', '✓ Suspendida');
+            },
+            error: () => this.notification.error('No se pudo suspender.', 'Error')
         });
     }
 
@@ -135,8 +179,15 @@ export class RevisarSolicitudesComponent implements OnInit {
 
     getBadge(estado: string): string {
         const m: Record<string,string> = {
-            CREADA: 'badge-creada', ENVIADA: 'badge-enviada',
-            APROBADA: 'badge-aprobada', RECHAZADA: 'badge-rechazada'
+            CREADA: 'badge-creada',
+            ENVIADA: 'badge-enviada',
+            APROBADA: 'badge-aprobada',
+            RECHAZADA: 'badge-rechazada',
+            SUSPENDIDA: 'badge-suspendida',
+            TUTORIA: 'badge-tutoria',
+            EVALUACION: 'badge-evaluacion',
+            CALIFICADA: 'badge-calificada',
+            COMPLETADA: 'badge-completada'
         };
         return m[estado] || 'badge-default';
     }

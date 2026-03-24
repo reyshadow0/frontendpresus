@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SolicitudService } from '../../../services/solicitud.service';
@@ -22,8 +22,6 @@ export class ReportesComponent implements OnInit {
     cronogramas: any[] = [];
     cargando = true;
     generandoId: number | null = null;
-
-    // Computed lists for template (no arrow functions in templates)
     solicitudesAprobadas: any[] = [];
 
     constructor(
@@ -31,11 +29,13 @@ export class ReportesComponent implements OnInit {
         private evalService: EvaluacionService,
         private actaService: ActaService,
         private cronogramaService: CronogramaService,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
         this.cargarTodo();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargarTodo(): void {
@@ -45,16 +45,16 @@ export class ReportesComponent implements OnInit {
             this.solicitudes = s;
             this.solicitudesAprobadas = s.filter((x: any) => x.estado === 'APROBADA');
             this.checkDone();
+            this.cdr.markForCheck();
         });
-        this.evalService.listar().subscribe(e => { this.evaluaciones = e; this.checkDone(); });
-        this.actaService.listar().subscribe(a => { this.actas = a; this.checkDone(); });
-        this.cronogramaService.listar().subscribe(c => { this.cronogramas = c; this.checkDone(); });
+        this.evalService.listar().subscribe(e => { this.evaluaciones = e; this.checkDone(); this.cdr.markForCheck(); });
+        this.actaService.listar().subscribe(a => { this.actas = a; this.checkDone(); this.cdr.markForCheck(); });
+        this.cronogramaService.listar().subscribe(c => { this.cronogramas = c; this.checkDone(); this.cdr.markForCheck(); });
     }
 
     private _done = 0;
-    checkDone(): void { if (++this._done >= 4) { this.cargando = false; this._done = 0; } }
+    checkDone(): void { if (++this._done >= 4) { this.cargando = false; this._done = 0; this.cdr.markForCheck(); } }
 
-    // ── Estadísticas ──────────────────────────────────────────────────────
     get totalSolicitudes(): number { return this.solicitudes.length; }
     get aprobadas(): number        { return this.solicitudes.filter(s => s.estado === 'APROBADA').length; }
     get rechazadas(): number       { return this.solicitudes.filter(s => s.estado === 'RECHAZADA').length; }
@@ -73,7 +73,6 @@ export class ReportesComponent implements OnInit {
     get actasFirmadas(): number   { return this.actas.filter(a => a.firmada).length; }
     get actasPendientes(): number { return this.actas.filter(a => !a.firmada).length; }
 
-    // ── Acciones ───────────────────────────────────────────────────────────
     generarActa(solicitudId: number): void {
         this.generandoId = solicitudId;
         this.actaService.generarActa(solicitudId).subscribe({
@@ -86,6 +85,7 @@ export class ReportesComponent implements OnInit {
                 const msg = err.error?.error || 'Error al generar acta.';
                 this.notification.error(msg, 'Error');
                 this.generandoId = null;
+                this.cdr.markForCheck();
             }
         });
     }

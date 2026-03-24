@@ -35,7 +35,12 @@
         <button class="filtro-btn" [class.activo]="filtroEstado===''"          (click)="setFiltro('')">Todas ({{ solicitudes.length }})</button>
         <button class="filtro-btn" [class.activo]="filtroEstado==='ENVIADA'"   (click)="setFiltro('ENVIADA')">Por revisar ({{ contar('ENVIADA') }})</button>
         <button class="filtro-btn" [class.activo]="filtroEstado==='APROBADA'"  (click)="setFiltro('APROBADA')">Aprobadas ({{ contar('APROBADA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='TUTORIA'"   (click)="setFiltro('TUTORIA')">En Tutoría ({{ contar('TUTORIA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='EVALUACION'"(click)="setFiltro('EVALUACION')">En Evaluación ({{ contar('EVALUACION') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='CALIFICADA'" (click)="setFiltro('CALIFICADA')">Calificadas ({{ contar('CALIFICADA') }})</button>
         <button class="filtro-btn" [class.activo]="filtroEstado==='RECHAZADA'" (click)="setFiltro('RECHAZADA')">Rechazadas ({{ contar('RECHAZADA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='SUSPENDIDA'" (click)="setFiltro('SUSPENDIDA')">Suspendidas ({{ contar('SUSPENDIDA') }})</button>
+        <button class="filtro-btn" [class.activo]="filtroEstado==='COMPLETADA'" (click)="setFiltro('COMPLETADA')">Completadas ({{ contar('COMPLETADA') }})</button>
         <button class="filtro-btn" [class.activo]="filtroEstado==='CREADA'"    (click)="setFiltro('CREADA')">Borradores ({{ contar('CREADA') }})</button>
     </div>
 
@@ -80,46 +85,96 @@
                 <td>
                     <div class="acciones-cell">
 
-                        <!-- ENVIADA → Paso 1: Aprobar / Rechazar -->
+                        <!-- ENVIADA → Paso 1: Aprobar / Rechazar / Suspender -->
                         <button class="btn-accion btn-aprobar"  *ngIf="s.estado==='ENVIADA'" (click)="aprobar(s.id)">
                             <i class="bi bi-check-circle-fill"></i> Aprobar
                         </button>
                         <button class="btn-accion btn-rechazar" *ngIf="s.estado==='ENVIADA'" (click)="abrirModalRechazo(s.id)">
                             <i class="bi bi-x-circle-fill"></i> Rechazar
                         </button>
+                        <button class="btn-accion btn-ver-pdf" *ngIf="s.estado==='ENVIADA'"
+                                [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                            <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                        </button>
 
-                        <!-- APROBADA → Pasos 2, 3, 4 disponibles -->
+                        <!-- APROBADA → Tribunal, Fecha, Evaluar, PDF, Suspender -->
                         <ng-container *ngIf="s.estado==='APROBADA'">
-                            <!-- Paso 2: Asignar tribunal y tutor (RF-06) -->
                             <button class="btn-accion btn-tribunal"
                                     [routerLink]="['/dashboard/admin/asignar-jurados', s.id]"
                                     title="Asignar Presidente, Vocales y Tutor">
                                 <i class="bi bi-people-fill"></i> Tribunal
                             </button>
-                            <!-- Paso 3: Programar cronograma -->
                             <button class="btn-accion btn-programar"
                                     [routerLink]="['/dashboard/admin/cronograma', s.id]">
                                 <i class="bi bi-calendar-plus"></i> Fecha
                             </button>
-                            <!-- Paso 4: Evaluar con ponderación 60/40 (RF-09) -->
                             <button class="btn-accion btn-evaluar"
                                     [routerLink]="['/dashboard/admin/evaluar', s.id]">
                                 <i class="bi bi-star-fill"></i> Evaluar
                             </button>
-                            <!-- Ver anteproyecto PDF -->
                             <button class="btn-accion btn-ver-pdf"
                                     [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
                                 <i class="bi bi-file-earmark-pdf"></i> PDF
                             </button>
                         </ng-container>
 
-                        <!-- Ver PDF también en ENVIADA -->
-                        <button class="btn-accion btn-ver-pdf" *ngIf="s.estado==='ENVIADA'"
-                                [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
-                            <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                        <!-- TUTORIA → Tribunal (cambiar), Fecha, Evaluar, PDF, Suspender -->
+                        <ng-container *ngIf="s.estado==='TUTORIA'">
+                            <button class="btn-accion btn-tribunal"
+                                    [routerLink]="['/dashboard/admin/asignar-jurados', s.id]"
+                                    title="Ver/Modificar tribunal">
+                                <i class="bi bi-people-fill"></i> Tribunal
+                            </button>
+                            <button class="btn-accion btn-programar"
+                                    [routerLink]="['/dashboard/admin/cronograma', s.id]">
+                                <i class="bi bi-calendar-plus"></i> Fecha
+                            </button>
+                            <button class="btn-accion btn-evaluar"
+                                    [routerLink]="['/dashboard/admin/evaluar', s.id]">
+                                <i class="bi bi-star-fill"></i> Evaluar
+                            </button>
+                            <button class="btn-accion btn-ver-pdf"
+                                    [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
+                            </button>
+                        </ng-container>
+
+                        <!-- EVALUACION → Fecha, Evaluar, PDF, Suspender -->
+                        <ng-container *ngIf="s.estado==='EVALUACION'">
+                            <button class="btn-accion btn-programar"
+                                    [routerLink]="['/dashboard/admin/cronograma', s.id]">
+                                <i class="bi bi-calendar-plus"></i> Fecha
+                            </button>
+                            <button class="btn-accion btn-evaluar"
+                                    [routerLink]="['/dashboard/admin/evaluar', s.id]">
+                                <i class="bi bi-star-fill"></i> Evaluar
+                            </button>
+                            <button class="btn-accion btn-ver-pdf"
+                                    [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
+                            </button>
+                        </ng-container>
+
+                        <!-- CALIFICADA → Fecha, PDF, Suspender -->
+                        <ng-container *ngIf="s.estado==='CALIFICADA'">
+                            <button class="btn-accion btn-programar"
+                                    [routerLink]="['/dashboard/admin/cronograma', s.id]">
+                                <i class="bi bi-calendar-plus"></i> Fecha
+                            </button>
+                            <button class="btn-accion btn-ver-pdf"
+                                    [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
+                            </button>
+                        </ng-container>
+
+                        <!-- Suspender: disponible para ENVIADA, APROBADA, TUTORIA, EVALUACION, CALIFICADA -->
+                        <button class="btn-accion btn-suspender" 
+                                *ngIf="s.estado==='ENVIADA' || s.estado==='APROBADA' || s.estado==='TUTORIA' || s.estado==='EVALUACION' || s.estado==='CALIFICADA'" 
+                                (click)="abrirModalSuspension(s.id)">
+                            <i class="bi bi-slash-circle-fill"></i> Suspender
                         </button>
 
-                        <span class="sin-accion" *ngIf="s.estado==='RECHAZADA' || s.estado==='CREADA'">—</span>
+                        <span class="sin-accion" *ngIf="s.estado==='RECHAZADA' || s.estado==='CREADA' || s.estado==='SUSPENDIDA' || s.estado==='COMPLETADA'">—</span>
                     </div>
                 </td>
             </tr>
@@ -174,6 +229,35 @@
             </button>
             <button class="btn-confirmar-rechazo" (click)="confirmarRechazo()">
                 <i class="bi bi-x-circle-fill me-1"></i>Confirmar Rechazo
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal Suspensión ─────────────────────────────────── -->
+<div class="noti-modal-backdrop" *ngIf="modalSuspension" (click)="cerrarModalSuspension()">
+    <div class="noti-modal modal-suspension" (click)="$event.stopPropagation()">
+        <div class="noti-modal-header suspension-header">
+            <i class="bi bi-slash-circle-fill noti-icon icon-suspension"></i>
+            <span class="noti-title">Suspender Solicitud</span>
+        </div>
+        <div class="noti-modal-body">
+            <p class="rechazo-label">Ingresa el motivo de la suspensión <span class="req">*</span></p>
+            <textarea
+                    class="rechazo-textarea"
+                    [(ngModel)]="motivoSuspension"
+                    placeholder="Ej: Plagio detectado, incumplimiento de normas..."
+                    rows="4"
+                    maxlength="500">
+      </textarea>
+            <small class="char-count">{{ motivoSuspension.length }}/500</small>
+        </div>
+        <div class="noti-modal-footer rechazo-footer">
+            <button class="btn-cerrar-noti" (click)="cerrarModalSuspension()">
+                <i class="bi bi-x me-1"></i>Cancelar
+            </button>
+            <button class="btn-confirmar-suspension" (click)="confirmarSuspension()">
+                <i class="bi bi-slash-circle-fill me-1"></i>Confirmar Suspensión
             </button>
         </div>
     </div>

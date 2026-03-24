@@ -7,7 +7,7 @@ import { RubricaService } from '../../../services/rubrica.service';
 import { SolicitudService } from '../../../services/solicitud.service';
 import { JuradoService } from '../../../services/jurado.service';
 import { ActaService } from '../../../services/acta.service';
-import { RubricaEvaluacionService, EvaluacionRubricaResponse } from '../../../services/rubrica-evaluacion.service';
+import { JuryEvaluationService, EvaluacionJuradoResponse } from '../../../services/jury-evaluation.service';
 import { NotificationService } from '../../../services/notification.service';
 
 @Component({
@@ -31,9 +31,8 @@ export class EvaluarSolicitudComponent implements OnInit {
   modalObs: string | null = null;
   modalTitulo = '';
 
-  // ★ NEW: evaluaciones del tribunal por rúbrica
-  evaluacionesTribunal: EvaluacionRubricaResponse[] = [];
-  notaTribunalRubrica: number | null = null;
+  evaluacionesJurado: EvaluacionJuradoResponse[] = [];
+  notaTribunalPromedio: number | null = null;
   tribunalCompleto = false;
 
   readonly ROLES_FIRMA = [
@@ -52,13 +51,12 @@ export class EvaluarSolicitudComponent implements OnInit {
     private solicitudService: SolicitudService,
     private juradoService: JuradoService,
     private actaService: ActaService,
-    private rubricaEvalService: RubricaEvaluacionService,
+    private juryEvalService: JuryEvaluationService,
     private notification: NotificationService
   ) {}
 
   ngOnInit(): void {
     this.solicitudId = Number(this.route.snapshot.paramMap.get('id'));
-    // Coordinator only enters notaInstructor (60%); notaJurado comes from rubric evaluations
     this.form = this.fb.group({
       rubricaId:      ['', Validators.required],
       notaInstructor: ['', [Validators.required, Validators.min(0), Validators.max(10)]],
@@ -74,27 +72,32 @@ export class EvaluarSolicitudComponent implements OnInit {
     this.juradoService.obtenerTutor(this.solicitudId).subscribe({ next: t => this.tutor = t, error: () => {} });
     this.evalService.porSolicitud(this.solicitudId).subscribe({ next: e => this.evaluacionExistente = e, error: () => {} });
     this.actaService.porSolicitud(this.solicitudId).subscribe({ next: a => this.acta = a, error: () => {} });
-
-    // ★ Load tribunal rubric evaluations
     this.cargarNotaTribunal();
   }
 
   cargarNotaTribunal(): void {
-    this.rubricaEvalService.obtenerEvaluacionesSolicitud(this.solicitudId).subscribe({
+    this.juryEvalService.obtenerTribunal(this.solicitudId).subscribe({
       next: (evals) => {
-        this.evaluacionesTribunal = evals;
+        this.evaluacionesJurado = evals;
         if (evals.length > 0) {
-          this.notaTribunalRubrica = evals[0].notaPromedioTribunal;
-          this.tribunalCompleto = evals[0].tribunalCompleto;
+          const sum = evals.reduce((acc, e) => acc + e.notaJurado, 0);
+          this.notaTribunalPromedio = Math.round((sum / evals.length) * 100) / 100;
+          this.tribunalCompleto = evals.length === this.jurados.length;
+        } else {
+          this.notaTribunalPromedio = null;
+          this.tribunalCompleto = false;
         }
       },
       error: () => {}
     });
   }
 
-  // ── Cálculo en tiempo real ────────────────────────────────────────────────
+  getEvaluacionJuradoPorRol(rol: string): EvaluacionJuradoResponse | undefined {
+    return this.evaluacionesJurado.find(e => e.rolJurado === rol);
+  }
+
   get notaInstructor(): number { return +this.form.get('notaInstructor')?.value || 0; }
-  get notaJurado(): number     { return this.notaTribunalRubrica ?? 0; }
+  get notaJurado(): number     { return this.notaTribunalPromedio ?? 0; }
 
   get notaFinalPreview(): number {
     return Math.round(((this.notaInstructor * 60 / 100)
@@ -106,13 +109,40 @@ export class EvaluarSolicitudComponent implements OnInit {
     return this.notaFinalPreview >= 7 ? 'APROBADO' : 'REPROBADO';
   }
 
-  // ── Guardar evaluación ───────────────────────────────────────────────────
+  getRangoLabel(nota: number): string {
+    if (nota <= 3) return 'DEFICIENTE';
+    if (nota <= 6) return 'REGULAR';
+    return 'BUENO';
+  }
+
+  getRangoClass(nota: number): string {
+    if (nota <= 3) return 'deficiente';
+    if (nota <= 6) return 'regular';
+    return 'bueno';
+  }
+
+  getRangoIcon(nota: number): string {
+    if (nota <= 3) return 'bi-x-circle-fill';
+    if (nota <= 6) return 'bi-exclamation-circle-fill';
+    return 'bi-check-circle-fill';
+  }
+
+  getComentarioRango(nota: number): string {
+    if (nota <= 3) {
+      return 'El trabajo no cumple con los requisitos mínimos esperados. Se evidencian falencias significativas que requieren correcciones sustanciales.';
+    } else if (nota <= 6) {
+      return 'El trabajo presenta un nivel aceptable pero con aspectos que requieren mejoras o correcciones para alcanzar los estándares esperados.';
+    } else {
+      return 'El trabajo cumple satisfactoriamente con los objetivos y requisitos establecidos, demostrando un desempeño adecuado.';
+    }
+  }
+
   guardar(): void {
     if (this.form.invalid) return;
 
     if (!this.tribunalCompleto) {
       this.notification.error(
-        'El tribunal aún no ha completado su evaluación por rúbrica. Todos los jurados deben evaluar antes.',
+        'El tribunal aún no ha completado su evaluación. Todos los jurados deben evaluar antes.',
         'Tribunal incompleto'
       );
       return;
@@ -120,7 +150,7 @@ export class EvaluarSolicitudComponent implements OnInit {
 
     this.enviando = true;
     const { rubricaId, notaInstructor, observaciones } = this.form.value;
-    const notaJurado = this.notaTribunalRubrica!;
+    const notaJurado = this.notaTribunalPromedio!;
 
     this.evalService.evaluarPonderado(
       this.solicitudId, rubricaId,

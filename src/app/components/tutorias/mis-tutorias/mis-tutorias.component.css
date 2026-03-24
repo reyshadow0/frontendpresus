@@ -150,6 +150,11 @@
   color: #15803d;
 }
 
+.badge-suspendida {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 /* ── Persona ──────────────────────────────────────────────────── */
 .card-persona {
   font-size: 0.85rem;

@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -21,11 +21,11 @@ export class LoginComponent implements OnInit {
         private fb: FormBuilder,
         private authService: AuthService,
         private router: Router,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
-        // Si ya está logueado, redirigir directo al dashboard
         if (this.authService.isLoggedIn()) {
             this.router.navigate(['/dashboard']);
             return;
@@ -43,10 +43,12 @@ export class LoginComponent implements OnInit {
             this.authService.login(this.loginForm.value).subscribe({
                 next: () => {
                     this.cargando = false;
+                    this.cdr.markForCheck();
                     this.router.navigate(['/dashboard']);
                 },
                 error: (err: any) => {
                     this.cargando = false;
+                    this.cdr.markForCheck();
                     if (err.status === 403) {
                         this.notification.error('El servidor bloqueó la petición (CORS)', 'Error 403');
                     } else if (err.status === 401) {

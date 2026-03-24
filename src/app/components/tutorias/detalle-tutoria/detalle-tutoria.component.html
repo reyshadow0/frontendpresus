@@ -22,6 +22,23 @@
   <div class="detalle-layout" *ngIf="!cargando && resumen">
 
     <!-- ════════════════════════════════════════
+         OVERLAY DE SUSPENSIÓN — visible para ambos roles
+    ════════════════════════════════════════════ -->
+    <div class="overlay-suspension" *ngIf="solicitudSuspendida">
+      <div class="overlay-suspension-card">
+        <div class="overlay-suspension-icon">
+          <i class="bi bi-slash-circle-fill"></i>
+        </div>
+        <h3>Solicitud Suspendida</h3>
+        <p>Esta solicitud ha sido suspendida por el coordinador.</p>
+        <p *ngIf="solicitudMotivoSuspension" class="overlay-motivo">
+          <strong>Motivo:</strong> {{ solicitudMotivoSuspension }}
+        </p>
+        <small>Espere a que el coordinador levante la suspensión para continuar.</small>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
          COLUMNA IZQUIERDA — Progreso de fases
     ════════════════════════════════════════════ -->
     <div class="col-fases">
@@ -92,7 +109,7 @@
       </div>
 
       <!-- ── DOCENTE: sin fases → crear Fase 1 ─────────────────────────── -->
-      <div class="panel-crear-fase" *ngIf="rol === 'DOCENTE' && fases.length === 0">
+      <div class="panel-crear-fase" *ngIf="rol === 'DOCENTE' && fases.length === 0 && !solicitudSuspendida">
         <div class="crear-fase-icono">📝</div>
         <h3>Iniciar proceso de tutoría</h3>
         <p class="crear-fase-desc">
@@ -136,6 +153,20 @@
           <span class="fase-fecha">
             <i class="bi bi-calendar3 me-1"></i>Inicio: {{ formatDate(faseSeleccionada.fechaInicio) }}
           </span>
+        </div>
+
+        <!-- Alerta de suspensión (visible para ambos: estudiante y tutor) -->
+        <div class="alerta-suspension" *ngIf="solicitudSuspendida">
+          <div class="alerta-suspension-icon">
+            <i class="bi bi-slash-circle-fill"></i>
+          </div>
+          <div class="alerta-suspension-content">
+            <strong>La solicitud ha sido suspendida por el coordinador</strong>
+            <p>No puedes realizar acciones en esta tutoría hasta que se levante la suspensión.</p>
+            <p *ngIf="solicitudMotivoSuspension" class="alerta-suspension-motivo">
+              <strong>Motivo de suspensión:</strong> {{ solicitudMotivoSuspension }}
+            </p>
+          </div>
         </div>
 
         <!-- Indicador de revisiones completadas -->
@@ -194,7 +225,7 @@
           <!-- DOCENTE puede crear siguiente fase (si no se llegó a 3) -->
           <div
             class="panel-nueva-fase"
-            *ngIf="rol === 'DOCENTE' && resumen.totalFases < 3 && faseSeleccionada.numeroFase === resumen.totalFases && !tutoriaCompleta"
+            *ngIf="rol === 'DOCENTE' && resumen.totalFases < 3 && faseSeleccionada.numeroFase === resumen.totalFases && !tutoriaCompleta && !solicitudSuspendida"
           >
             <h4 class="nueva-fase-titulo">
               <i class="bi bi-plus-circle me-1"></i>Iniciar Fase {{ resumen.totalFases + 1 }}
@@ -239,20 +270,21 @@
                 [(ngModel)]="nuevoMensaje"
                 placeholder="Escribe un comentario al estudiante..."
                 rows="3"
+                [disabled]="solicitudSuspendida"
               ></textarea>
               <div class="acciones-row">
-                <button
-                  class="btn-enviar"
-                  (click)="enviarMensaje()"
-                  [disabled]="enviandoMensaje || !nuevoMensaje.trim()"
-                >
-                  <i class="bi bi-send me-1"></i>
-                  {{ enviandoMensaje ? 'Enviando...' : 'Enviar mensaje' }}
-                </button>
+              <button
+                class="btn-enviar"
+                (click)="enviarMensaje()"
+                [disabled]="enviandoMensaje || !nuevoMensaje.trim() || solicitudSuspendida"
+              >
+                <i class="bi bi-send me-1"></i>
+                {{ enviandoMensaje ? 'Enviando...' : 'Enviar mensaje' }}
+              </button>
                 <button
                   class="btn-aprobar"
                   (click)="confirmarAprobar()"
-                  [disabled]="aprobando"
+                  [disabled]="aprobando || solicitudSuspendida"
                 >
                   <span *ngIf="!aprobando">✅ Aprobar esta Fase</span>
                   <span *ngIf="aprobando"><i class="bi bi-hourglass-split me-1"></i>Aprobando...</span>
@@ -278,11 +310,12 @@
                 [(ngModel)]="nuevoMensaje"
                 placeholder="Escribe un mensaje al tutor..."
                 rows="3"
+                [disabled]="solicitudSuspendida"
               ></textarea>
               <button
                 class="btn-enviar"
                 (click)="enviarMensaje()"
-                [disabled]="enviandoMensaje || !nuevoMensaje.trim()"
+                [disabled]="enviandoMensaje || !nuevoMensaje.trim() || solicitudSuspendida"
               >
                 <i class="bi bi-send me-1"></i>
                 {{ enviandoMensaje ? 'Enviando...' : 'Enviar mensaje' }}
@@ -307,11 +340,12 @@
                 [(ngModel)]="nuevoMensaje"
                 placeholder="Puedes escribir un mensaje adicional al estudiante..."
                 rows="3"
+                [disabled]="solicitudSuspendida"
               ></textarea>
               <button
                 class="btn-enviar"
                 (click)="enviarMensaje()"
-                [disabled]="enviandoMensaje || !nuevoMensaje.trim()"
+                [disabled]="enviandoMensaje || !nuevoMensaje.trim() || solicitudSuspendida"
               >
                 <i class="bi bi-send me-1"></i>
                 {{ enviandoMensaje ? 'Enviando...' : 'Enviar mensaje' }}
@@ -336,11 +370,12 @@
             <div
               class="drop-zone"
               [class.dragover]="isDragOver"
-              (dragover)="onDragOver($event)"
+              [class.drop-zone-disabled]="solicitudSuspendida"
+              (dragover)="!solicitudSuspendida && onDragOver($event)"
               (dragleave)="onDragLeave()"
-              (drop)="onDrop($event)"
+              (drop)="!solicitudSuspendida && onDrop($event)"
             >
-              <ng-container *ngIf="!archivoSeleccionado">
+              <ng-container *ngIf="!archivoSeleccionado && !solicitudSuspendida">
                 <i class="bi bi-cloud-arrow-up drop-icon"></i>
                 <p class="drop-texto">Arrastra tu PDF aquí o</p>
                 <label class="btn-seleccionar" for="fileInput">
@@ -356,12 +391,18 @@
                 <p class="drop-hint">Solo PDF, máximo 10 MB</p>
               </ng-container>
 
-              <ng-container *ngIf="archivoSeleccionado">
+              <ng-container *ngIf="archivoSeleccionado && !solicitudSuspendida">
                 <div class="archivo-seleccionado">
                   <i class="bi bi-file-earmark-pdf-fill pdf-icon"></i>
                   <span class="archivo-nombre">📄 {{ archivoSeleccionado.name }}</span>
                   <button class="btn-quitar" (click)="quitarArchivo()" title="Quitar archivo">✕</button>
                 </div>
+              </ng-container>
+
+              <ng-container *ngIf="solicitudSuspendida">
+                <i class="bi bi-lock-fill drop-icon"></i>
+                <p class="drop-texto">Subida de archivos deshabilitada</p>
+                <p class="drop-hint">La solicitud está suspendida</p>
               </ng-container>
             </div>
 
@@ -369,7 +410,7 @@
             <button
               class="btn-subir-pdf"
               (click)="subirPdf()"
-              [disabled]="subiendoPdf || !archivoSeleccionado"
+              [disabled]="subiendoPdf || !archivoSeleccionado || solicitudSuspendida"
             >
               <span *ngIf="!subiendoPdf">
                 <i class="bi bi-upload me-1"></i>📤 Enviar corrección
@@ -386,11 +427,12 @@
                 [(ngModel)]="nuevoMensaje"
                 placeholder="Puedes escribir un mensaje al tutor..."
                 rows="3"
+                [disabled]="solicitudSuspendida"
               ></textarea>
               <button
                 class="btn-enviar"
                 (click)="enviarMensaje()"
-                [disabled]="enviandoMensaje || !nuevoMensaje.trim()"
+                [disabled]="enviandoMensaje || !nuevoMensaje.trim() || solicitudSuspendida"
               >
                 <i class="bi bi-send me-1"></i>
                 {{ enviandoMensaje ? 'Enviando...' : 'Enviar mensaje' }}

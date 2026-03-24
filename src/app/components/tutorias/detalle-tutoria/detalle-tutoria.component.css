@@ -484,6 +484,43 @@
   gap: 6px;
 }
 
+/* ── Alerta de suspensión ──────────────────────────────────────────────── */
+.alerta-suspension {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.alerta-suspension-icon {
+  font-size: 1.75rem;
+  color: #d97706;
+  flex-shrink: 0;
+}
+.alerta-suspension-content {
+  flex: 1;
+}
+.alerta-suspension-content strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #92400e;
+  margin-bottom: 4px;
+}
+.alerta-suspension-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #78350f;
+  line-height: 1.4;
+}
+.alerta-suspension-motivo {
+  margin-top: 8px !important;
+  padding-top: 8px;
+  border-top: 1px solid #fcd34d;
+}
+
 .nombre-pdf {
   font-size: 0.8rem;
   color: #374151;
@@ -742,3 +779,112 @@ body.dark-mode .archivo-nombre { color: #e6edf3; }
 body.dark-mode .btn-quitar { color: #f87171; }
 body.dark-mode .btn-quitar:hover { background: #450a0a; }
 body.dark-mode .nombre-pdf { color: #c9d1d9; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERLAY DE SUSPENSIÓN — para estudiante y tutor
+   ══════════════════════════════════════════════════════════════════════ */
+.overlay-suspension {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: 12px;
+  margin: 0 0 16px 0;
+}
+
+.overlay-suspension-card {
+  background: #fff;
+  padding: 32px 40px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 2px solid #f59e0b;
+}
+
+.overlay-suspension-icon {
+  font-size: 3.5rem;
+  color: #d97706;
+  margin-bottom: 16px;
+}
+
+.overlay-suspension-card h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 12px;
+}
+
+.overlay-suspension-card p {
+  font-size: 0.95rem;
+  color: #78350f;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.overlay-motivo {
+  background: #fffbeb;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #fcd34d;
+  margin: 12px 0 !important;
+  text-align: left;
+}
+
+.overlay-suspension-card small {
+  font-size: 0.8rem;
+  color: #92400e;
+  display: block;
+  margin-top: 16px;
+  font-style: italic;
+}
+
+/* Drop zone deshabilitado */
+.drop-zone-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Modo oscuro para overlay */
+body.dark-mode .overlay-suspension {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+body.dark-mode .overlay-suspension-card {
+  background: #161b22;
+  border-color: #d97706;
+}
+
+body.dark-mode .overlay-suspension-icon {
+  color: #fbbf24;
+}
+
+body.dark-mode .overlay-suspension-card h3 {
+  color: #fbbf24;
+}
+
+body.dark-mode .overlay-suspension-card p {
+  color: #c9d1d9;
+}
+
+body.dark-mode .overlay-motivo {
+  background: #1c1400;
+  border-color: #854d0e;
+}
+
+body.dark-mode .overlay-suspension-card small {
+  color: #8b949e;
+}
+
+body.dark-mode .drop-zone-disabled {
+  opacity: 0.4;
+}

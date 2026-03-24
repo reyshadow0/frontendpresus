@@ -58,4 +58,8 @@ export class JuradoService {
   listarTutoriasPorDocente(docenteId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.api}/tutor/docente/${docenteId}`);
   }
+
+  obtenerInfoJurado(solicitudId: number, usuarioId: number): Observable<any> {
+    return this.http.get<any>(`${this.api}/info/${solicitudId}/${usuarioId}`);
+  }
 }

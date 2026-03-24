@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -26,11 +26,13 @@ export class PerfilComponent implements OnInit {
     constructor(
         private http: HttpClient,
         private authService: AuthService,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
         this.cargarPerfil();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargarPerfil(): void {
@@ -41,10 +43,12 @@ export class PerfilComponent implements OnInit {
                 this.emailNotificaciones = u.emailNotificaciones || '';
                 this.telefono = u.telefono || '';
                 this.cargando = false;
+                this.cdr.markForCheck();
             },
             error: () => {
                 this.notification.error('No se pudo cargar el perfil.', 'Error');
                 this.cargando = false;
+                this.cdr.markForCheck();
             }
         });
     }
@@ -71,11 +75,13 @@ export class PerfilComponent implements OnInit {
                 this.authService.marcarEmailNotiConfigurado();
                 this.notification.success('Perfil actualizado. Las notificaciones llegarán a: ' + this.emailNotificaciones, '✓ Guardado');
                 this.guardando = false;
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 const msg = err?.error?.error || 'No se pudo actualizar el perfil.';
                 this.notification.error(msg, 'Error');
                 this.guardando = false;
+                this.cdr.markForCheck();
             }
         });
     }

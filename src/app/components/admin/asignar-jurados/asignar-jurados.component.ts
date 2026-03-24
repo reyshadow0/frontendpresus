@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -23,11 +23,11 @@ export class AsignarJuradosComponent implements OnInit {
     jurados: any[] = [];
     tutor: any = null;
     docentesSugeridos: any[] = [];
-    todosDocentes: any[] = [];   // ← lista completa para dropdowns
+    todosDocentes: any[] = [];
     cargando = true;
     procesando = false;
-    tutoriaCompletada: boolean | null = null;  // null = verificando
-    tutoriaTieneAsignacion = false;            // false = sin tutor asignado aún
+    tutoriaCompletada: boolean | null = null;
+    tutoriaTieneAsignacion = false;
     tutoriaFasesAprobadas = 0;
 
     formJurado!: FormGroup;
@@ -48,7 +48,8 @@ export class AsignarJuradosComponent implements OnInit {
         private solicitudService: SolicitudService,
         private notification: NotificationService,
         private tutoriaService: TutoriaService,
-        private authService: AuthService
+        private authService: AuthService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -61,6 +62,7 @@ export class AsignarJuradosComponent implements OnInit {
             docenteId: ['', Validators.required],
         });
         this.cargarDatos();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargarDatos(): void {
@@ -69,74 +71,73 @@ export class AsignarJuradosComponent implements OnInit {
             next: (s) => {
                 this.solicitud = s;
                 this.verificarTutoria(this.solicitudId);
+                this.cdr.markForCheck();
             },
-            error: () => { this.tutoriaCompletada = false; }
+            error: () => { this.tutoriaCompletada = false; this.cdr.markForCheck(); }
         });
-        // Cargar todos los docentes para el selector
         this.docenteService.listar().subscribe({
-            next: (d) => { this.todosDocentes = d; this.cargando = false; },
-            error: () => { this.cargando = false; }
+            next: (d) => { this.todosDocentes = d; this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
         this.cargarJurados();
         this.cargarSugerencias();
     }
 
     verificarTutoria(solicitudId: number): void {
-        // Paso 1: obtener el Tutor (entidad) asignado a la solicitud
         this.tutoriaService.obtenerTutorPorSolicitud(solicitudId).subscribe({
             next: (tutor) => {
-                this.tutor = tutor;   // ← muestra el tutor activo en la sección izquierda
+                this.tutor = tutor;
                 const tutorId: number = tutor?.id;
                 if (!tutorId) {
                     this.tutoriaTieneAsignacion = false;
                     this.tutoriaCompletada = false;
+                    this.cdr.markForCheck();
                     return;
                 }
-                // Paso 2: obtener el resumen de la tutoría con el tutorId real
                 this.tutoriaService.obtenerResumen(tutorId, this.authService.getUserId()).subscribe({
                     next: (resumen) => {
                         this.tutoriaTieneAsignacion = true;
                         this.tutoriaFasesAprobadas = resumen.fasesAprobadas;
                         this.tutoriaCompletada = resumen.estadoTutoria === 'COMPLETADA';
+                        this.cdr.markForCheck();
                     },
                     error: () => {
-                        // El tutor existe pero aún no hay tutoría iniciada
                         this.tutoriaTieneAsignacion = false;
                         this.tutoriaCompletada = false;
+                        this.cdr.markForCheck();
                     }
                 });
             },
             error: () => {
-                // No hay tutor asignado a esta solicitud
                 this.tutor = null;
                 this.tutoriaTieneAsignacion = false;
                 this.tutoriaCompletada = false;
+                this.cdr.markForCheck();
             }
         });
     }
 
     cargarJurados(): void {
         this.juradoService.listarPorSolicitud(this.solicitudId).subscribe({
-            next: (j) => this.jurados = j,
-            error: () => this.jurados = []
+            next: (j) => { this.jurados = j; this.cdr.markForCheck(); },
+            error: () => { this.jurados = []; this.cdr.markForCheck(); }
         });
     }
 
     cargarTutor(): void {
         this.juradoService.obtenerTutor(this.solicitudId).subscribe({
-            next: (t) => this.tutor = t,
-            error: () => this.tutor = null
+            next: (t) => { this.tutor = t; this.cdr.markForCheck(); },
+            error: () => { this.tutor = null; this.cdr.markForCheck(); }
         });
     }
 
     cargarSugerencias(): void {
         this.juradoService.sugerirDocentes(this.solicitudId, 8).subscribe({
-            next: (d) => this.docentesSugeridos = d,
-            error: () => this.docentesSugeridos = []
+            next: (d) => { this.docentesSugeridos = d; this.cdr.markForCheck(); },
+            error: () => { this.docentesSugeridos = []; this.cdr.markForCheck(); }
         });
     }
 
-    // ── Docentes disponibles para el selector (excluye ya asignados) ────────
     get docentesDisponiblesParaJurado(): any[] {
         const asignadosIds = this.jurados.map(j => j.docente?.id);
         return this.todosDocentes.filter(d => !asignadosIds.includes(d.id));
@@ -161,7 +162,6 @@ export class AsignarJuradosComponent implements OnInit {
         return u ? `${u.nombre} ${u.apellido}` : `Docente #${d.id}`;
     }
 
-    // ── Asignar jurado manual ─────────────────────────────────────────────────
     asignarJurado(): void {
         if (this.formJurado.invalid) return;
         this.procesando = true;
@@ -173,11 +173,13 @@ export class AsignarJuradosComponent implements OnInit {
                 this.cargarJurados();
                 this.cargarSugerencias();
                 this.procesando = false;
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 const msg = err.error?.error || 'No se pudo asignar el jurado.';
                 this.notification.error(msg, 'Error');
                 this.procesando = false;
+                this.cdr.markForCheck();
             }
         });
     }
@@ -190,11 +192,13 @@ export class AsignarJuradosComponent implements OnInit {
                 this.notification.success('Jurados asignados automáticamente según disponibilidad.', '✓ Éxito');
                 this.cargarSugerencias();
                 this.procesando = false;
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 const msg = err.error?.error || 'No se pudo asignar automáticamente.';
                 this.notification.error(msg, 'Error');
                 this.procesando = false;
+                this.cdr.markForCheck();
             }
         });
     }
@@ -221,11 +225,13 @@ export class AsignarJuradosComponent implements OnInit {
                 this.cargarSugerencias();
                 this.verificarTutoria(this.solicitudId);
                 this.procesando = false;
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 const msg = err.error?.error || 'No se pudo asignar tutor.';
                 this.notification.error(msg, 'Error');
                 this.procesando = false;
+                this.cdr.markForCheck();
             }
         });
     }

@@ -31,4 +31,5 @@ export interface TutoriaResumen {
   fasesAprobadas: number;
   estadoTutoria: 'ACTIVO' | 'COMPLETADA';
   mensajesNoLeidos: number;
+  solicitudSuspendida?: boolean;
 }

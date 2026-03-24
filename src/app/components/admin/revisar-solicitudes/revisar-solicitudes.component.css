@@ -27,6 +27,11 @@
 .badge-enviada { background: #dbeafe; color: #1e40af; }
 .badge-aprobada { background: #dcfce7; color: #166534; }
 .badge-rechazada { background: #fee2e2; color: #991b1b; }
+.badge-suspendida { background: #fef3c7; color: #92400e; }
+.badge-tutoria { background: #e0e7ff; color: #3730a3; }
+.badge-evaluacion { background: #fae8ff; color: #6b21a8; }
+.badge-calificada { background: #dcfce7; color: #15803d; }
+.badge-completada { background: #0d9488; color: #ffffff; }
 .badge-default { background: #f1f5f9; color: #475569; }
 .acciones-cell { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn-accion { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -34,6 +39,7 @@
 .btn-rechazar { background: #fee2e2; color: #991b1b; }
 .btn-ver-pdf  { background: #fef3c7; color: #92400e; }
 .btn-cronograma { background: #dbeafe; color: #1e40af; }
+.btn-evaluar { background: #fef3c7; color: #92400e; }
 .btn-accion:hover { opacity: 0.75; transform: translateY(-1px); }
 .estado-final { font-size: 0.78rem; color: #94a3b8; font-style: italic; }
 .text-center { text-align: center; }
@@ -233,6 +239,50 @@
 .btn-confirmar-rechazo:hover { background: #b91c1c; }
 
 /* ══════════════════════════════════════════════════════════════════════
+    SUSPENSIÓN — Botones, badges y modal
+    ══════════════════════════════════════════════════════════════════════ */
+.btn-suspender {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+.btn-suspender:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+.badge-suspendida {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Modal Suspensión */
+.modal-suspension {
+    min-width: 420px;
+    max-width: 520px;
+}
+.suspension-header {
+    background: #fffbeb;
+}
+.icon-suspension {
+    color: #d97706;
+}
+.btn-confirmar-suspension {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.btn-confirmar-suspension:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    MODO OSCURO — :host-context para Angular ViewEncapsulation
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -393,6 +443,10 @@ body.dark-mode .badge-rechazada,
 body.dark-mode .badge-rechazado,
 body.dark-mode .badge-reprobado { background: #2d0f0f !important; color: #f85149 !important; }
 body.dark-mode .badge-enviado  { background: #0d1f3a !important; color: #79c0ff !important; }
+body.dark-mode .badge-tutoria  { background: #1e1b4b !important; color: #a5b4fc !important; }
+body.dark-mode .badge-evaluacion { background: #2e1065 !important; color: #d8b4fe !important; }
+body.dark-mode .badge-calificada { background: #14532d !important; color: #86efac !important; }
+body.dark-mode .badge-completada { background: #0f766e !important; color: #ffffff !important; }
 
 /* Chips / tags */
 body.dark-mode .mod-chip,

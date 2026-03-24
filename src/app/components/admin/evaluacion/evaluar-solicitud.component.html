@@ -27,50 +27,46 @@
 
   <div class="eval-grid">
 
-    <!-- ── Panel: Nota del Tribunal (rúbrica) ──────────────────────── -->
+    <!-- ── Panel: Nota del Tribunal (40%) ──────────────────────── -->
     <div class="panel tribunal-rubrica-panel">
-      <h3 class="panel-title"><i class="bi bi-people-fill me-2"></i>Nota del Tribunal (40%) — por Rúbrica</h3>
+      <h3 class="panel-title"><i class="bi bi-people-fill me-2"></i>Nota del Tribunal (40%)</h3>
 
       <!-- Estado del tribunal -->
       <div class="estado-tribunal">
-        <div class="tj-row" *ngFor="let ev of evaluacionesTribunal">
+        <div class="tj-row" *ngFor="let j of jurados">
           <div class="tjr-info">
-            <span class="tjr-rol">{{ ev.rolJurado }}</span>
-            <span class="tjr-nombre">{{ ev.nombreJurado }}</span>
+            <span class="tjr-rol">{{ j.rol }}</span>
+            <span class="tjr-nombre">{{ j.docente?.usuario?.nombre }} {{ j.docente?.usuario?.apellido }}</span>
           </div>
           <div class="tjr-estado">
-            <span class="tjr-evaluado" *ngIf="ev.notaTotalJurado !== null">
-              <i class="bi bi-check-circle-fill"></i>
-              {{ ev.notaTotalJurado!.toFixed(2) }} / 10
-            </span>
-            <span class="tjr-pendiente" *ngIf="ev.notaTotalJurado === null">
+            <ng-container *ngIf="getEvaluacionJuradoPorRol(j.rol) as evalJurado">
+              <span class="tjr-evaluado">
+                <i class="bi bi-check-circle-fill"></i>
+                {{ evalJurado.notaJurado.toFixed(2) }} / 10
+              </span>
+            </ng-container>
+            <span class="tjr-pendiente" *ngIf="!getEvaluacionJuradoPorRol(j.rol)">
               <i class="bi bi-clock"></i> Pendiente
             </span>
           </div>
         </div>
-        <div class="empty-tribunal" *ngIf="evaluacionesTribunal.length === 0">
-          <i class="bi bi-inbox me-2"></i>No hay jurados asignados o ninguno ha evaluado aún.
+        <div class="empty-tribunal" *ngIf="jurados.length === 0">
+          <i class="bi bi-inbox me-2"></i>No hay jurados asignados.
         </div>
       </div>
 
       <!-- Nota promedio tribunal -->
       <div class="nota-tribunal-box" [class.lista]="tribunalCompleto" [class.incompleta]="!tribunalCompleto">
         <span class="ntb-label">Nota promedio tribunal</span>
-        <span class="ntb-valor" *ngIf="notaTribunalRubrica !== null">
-          {{ notaTribunalRubrica.toFixed(2) }} / 10
+        <span class="ntb-valor" *ngIf="notaTribunalPromedio !== null">
+          {{ notaTribunalPromedio.toFixed(2) }} / 10
         </span>
-        <span class="ntb-valor pending" *ngIf="notaTribunalRubrica === null">—</span>
+        <span class="ntb-valor pending" *ngIf="notaTribunalPromedio === null">—</span>
         <span class="ntb-estado" *ngIf="tribunalCompleto"><i class="bi bi-shield-check"></i> Completo</span>
-        <span class="ntb-estado warning" *ngIf="!tribunalCompleto && evaluacionesTribunal.length > 0">
+        <span class="ntb-estado warning" *ngIf="!tribunalCompleto && jurados.length > 0">
           <i class="bi bi-exclamation-circle"></i> Faltan evaluaciones
         </span>
       </div>
-
-      <a class="btn-ver-rubrica"
-         *ngIf="jurados.length > 0"
-         [routerLink]="['/dashboard/admin/ver-rubrica', solicitudId]">
-        <i class="bi bi-star-half me-1"></i> Ver evaluaciones de la rúbrica →
-      </a>
     </div>
 
     <!-- ── Panel: Nota del Coordinador (60%) ───────────────────────── -->
@@ -80,7 +76,7 @@
       <!-- Alerta si tribunal incompleto -->
       <div class="alerta-tribunal-incompleto" *ngIf="!tribunalCompleto">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        Los jurados deben completar su evaluación por rúbrica antes de poder registrar la nota final.
+        Los jurados deben completar su evaluación antes de poder registrar la nota final.
         <a [routerLink]="['/dashboard/admin/asignar-jurados', solicitudId]" class="link-asignar">Ver tribunal →</a>
       </div>
 
@@ -104,17 +100,17 @@
           <small class="form-hint">Ingresa la nota que asigna el docente de Titulación II al estudiante.</small>
         </div>
 
-        <!-- Nota tribunal (read-only, from rubrica) -->
+        <!-- Nota tribunal (read-only, from jury evaluations) -->
         <div class="nota-tribunal-readonly">
           <div class="ntr-row">
             <span class="ntr-label">
-              Nota del Tribunal <span class="peso-badge jurado">40%</span>
+              Nota del Tribunal <span class="peso-badge jury">40%</span>
             </span>
-            <span class="ntr-valor" *ngIf="notaTribunalRubrica !== null">
-              {{ notaTribunalRubrica.toFixed(2) }}
-              <span class="ntr-fuente">calculado por rúbrica</span>
+            <span class="ntr-valor" *ngIf="notaTribunalPromedio !== null">
+              {{ notaTribunalPromedio.toFixed(2) }}
+              <span class="ntr-fuente">promedio de {{ evaluacionesJurado.length }} evaluaciones</span>
             </span>
-            <span class="ntr-valor pending" *ngIf="notaTribunalRubrica === null">
+            <span class="ntr-valor pending" *ngIf="notaTribunalPromedio === null">
               Pendiente evaluación del tribunal
             </span>
           </div>
@@ -131,6 +127,19 @@
             <span class="nf-number">{{ notaFinalPreview.toFixed(2) }}</span>
             <span class="nf-label">{{ resultadoPreview }}</span>
           </div>
+        </div>
+
+        <!-- Preview comentario preestablecido -->
+        <div class="preview-comentario" *ngIf="notaInstructor > 0">
+          <div class="pc-header">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>Comentario preestablecido:</span>
+          </div>
+          <span class="pc-badge" [ngClass]="'pc-' + getRangoClass(notaFinalPreview)">
+            <i class="bi" [ngClass]="getRangoIcon(notaFinalPreview)"></i>
+            {{ getRangoLabel(notaFinalPreview) }}
+          </span>
+          <p class="pc-texto">{{ getComentarioRango(notaFinalPreview) }}</p>
         </div>
 
         <div class="form-group">
@@ -178,7 +187,7 @@
       </div>
 
       <div class="obs-box" *ngIf="evaluacionExistente.observaciones">
-        <strong>Observaciones:</strong>
+        <strong>Observaciones del coordinador:</strong>
         <p class="obs-inline">
           {{ evaluacionExistente.observaciones | slice:0:120 }}{{ evaluacionExistente.observaciones.length > 120 ? '...' : '' }}
           <button class="btn-ver-mas" *ngIf="evaluacionExistente.observaciones?.length > 40"

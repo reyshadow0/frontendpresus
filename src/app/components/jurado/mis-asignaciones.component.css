@@ -384,3 +384,60 @@ body.dark-mode .btn-card.btn-firmar  { background: #0f2e1a !important; color: #3
 body.dark-mode .empty-state      { color: #484f58 !important; }
 body.dark-mode .rol-badge        { background: #21262d !important; color: #8b949e !important; }
 body.dark-mode .estado-badge     { }
+
+/* Alerta de suspensión */
+.alerta-suspension-card {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #92400e;
+}
+
+.alerta-suspension-card i {
+    color: #d97706;
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* Badge suspendida */
+.badge-suspendida {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Botón deshabilitado por suspensión */
+.btn-suspendido {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    background: #f3f4f6 !important;
+    color: #9ca3af !important;
+}
+
+/* Modo oscuro - alerta suspensión */
+body.dark-mode .alerta-suspension-card {
+    background: #1c1400;
+    border-color: #854d0e;
+    color: #fbbf24;
+}
+
+body.dark-mode .alerta-suspension-card i {
+    color: #fbbf24;
+}
+
+body.dark-mode .badge-suspendida {
+    background: #78350f;
+    color: #fef3c7;
+}
+
+body.dark-mode .btn-suspendido {
+    background: #21262d !important;
+    color: #484f58 !important;
+}

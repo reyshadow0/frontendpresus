@@ -17,6 +17,7 @@ import { VerAnteproyectoComponent } from './components/docente/ver-anteproyecto/
 import { MisAsignacionesComponent } from './components/jurado/mis-asignaciones.component';
 import { FirmarActaDocenteComponent } from './components/docente/firmar-acta/firmar-acta-docente.component';
 import { EvaluarRubricaComponent } from './components/jurado/evaluar-rubrica/evaluar-rubrica.component';
+import { VerObservacionesComponent } from './components/solicitudes/ver-observaciones/ver-observaciones.component';
 
 import { PerfilComponent } from './components/perfil/perfil.component';
 import { MisTutoriasComponent } from './components/tutorias/mis-tutorias/mis-tutorias.component';
@@ -35,6 +36,7 @@ export const routes: Routes = [
             { path: 'solicitudes/registrar',         component: RegistrarSolicitudComponent,   canActivate: [authGuard] },
             { path: 'solicitudes/mis-tramites',       component: ListarSolicitudesComponent,    canActivate: [authGuard] },
             { path: 'solicitudes/cargar-pdf/:id',     component: CargarAnteproyectoComponent,   canActivate: [authGuard] },
+            { path: 'solicitudes/ver-observaciones/:id', component: VerObservacionesComponent,    canActivate: [authGuard] },
             { path: 'notas',                          component: MisNotasComponent,             canActivate: [authGuard] },
             { path: 'horario',                        component: MiHorarioComponent,            canActivate: [authGuard] },
             { path: 'notificaciones',                 component: NotificacionesComponent,       canActivate: [authGuard] },

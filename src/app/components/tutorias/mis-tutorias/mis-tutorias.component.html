@@ -33,8 +33,9 @@
       <!-- Encabezado -->
       <div class="card-header">
         <h3 class="card-titulo">{{ t.tituloTema }}</h3>
-        <span class="badge-estado badge-activo"   *ngIf="t.estadoTutoria === 'ACTIVO'">En progreso</span>
-        <span class="badge-estado badge-completa" *ngIf="t.estadoTutoria === 'COMPLETADA'">&#10003; Completada</span>
+        <span class="badge-estado badge-suspendida" *ngIf="t.solicitudSuspendida">🚫 Suspendida</span>
+        <span class="badge-estado badge-activo"   *ngIf="t.estadoTutoria === 'ACTIVO' && !t.solicitudSuspendida">En progreso</span>
+        <span class="badge-estado badge-completa" *ngIf="t.estadoTutoria === 'COMPLETADA'">✓ Completada</span>
       </div>
 
       <!-- Persona asignada -->

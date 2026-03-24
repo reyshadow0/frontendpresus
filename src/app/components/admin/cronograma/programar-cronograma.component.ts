@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -29,8 +29,7 @@ export class ProgramarCronogramaComponent implements OnInit {
     cronogramaExistente: any = null;
     errorConflicto: string | null = null;
 
-    // Validaciones previas al formulario
-    validacionTribunal: 'ok' | 'error' | null = null;  // null = verificando
+    validacionTribunal: 'ok' | 'error' | null = null;
     validacionTutoria:  'ok' | 'error' | null = null;
     mensajeTribunal = '';
     mensajeTutoria  = '';
@@ -45,7 +44,8 @@ export class ProgramarCronogramaComponent implements OnInit {
         private notification: NotificationService,
         private juradoService: JuradoService,
         private tutoriaService: TutoriaService,
-        private authService: AuthService
+        private authService: AuthService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -56,6 +56,7 @@ export class ProgramarCronogramaComponent implements OnInit {
             salaId: ['', Validators.required]
         });
         this.cargarDatos();
+        setTimeout(() => { if (this.validacionTribunal === null) { this.validacionTribunal = 'error'; this.cdr.markForCheck(); } }, 10000);
     }
 
     get formularioBloqueado(): boolean {
@@ -63,13 +64,12 @@ export class ProgramarCronogramaComponent implements OnInit {
     }
 
     cargarDatos(): void {
-        this.salaService.listar().subscribe(s => this.salas = s);
+        this.salaService.listar().subscribe(s => { this.salas = s; this.cdr.markForCheck(); });
         this.cronogramaService.porSolicitud(this.solicitudId).subscribe({
-            next: (c) => this.cronogramaExistente = c,
-            error: () => this.cronogramaExistente = null
+            next: (c) => { this.cronogramaExistente = c; this.cdr.markForCheck(); },
+            error: () => { this.cronogramaExistente = null; this.cdr.markForCheck(); }
         });
 
-        // Cargar solicitud y jurados en paralelo
         forkJoin({
             solicitud: this.solicitudService.obtenerPorId(this.solicitudId),
             jurados:   this.juradoService.listarPorSolicitud(this.solicitudId)
@@ -78,10 +78,12 @@ export class ProgramarCronogramaComponent implements OnInit {
                 this.solicitud = solicitud;
                 this.verificarTribunal(jurados);
                 this.verificarTutoria();
+                this.cdr.markForCheck();
             },
             error: () => {
                 this.validacionTribunal = 'error';
                 this.mensajeTribunal = 'No se pudo cargar la información de la solicitud.';
+                this.cdr.markForCheck();
             }
         });
     }
@@ -100,19 +102,19 @@ export class ProgramarCronogramaComponent implements OnInit {
                 .join(', ');
             this.mensajeTribunal = `El tribunal no está completo. Faltan: ${faltantes}.`;
         }
+        this.cdr.markForCheck();
     }
 
     private verificarTutoria(): void {
-        // Paso 1: obtener el Tutor (entidad) asignado a la solicitud
         this.tutoriaService.obtenerTutorPorSolicitud(this.solicitudId).subscribe({
             next: (tutor) => {
                 const tutorId = tutor?.id;
                 if (!tutorId) {
                     this.validacionTutoria = 'error';
                     this.mensajeTutoria = 'El estudiante no tiene tutor asignado aún.';
+                    this.cdr.markForCheck();
                     return;
                 }
-                // Paso 2: verificar el resumen de la tutoría
                 this.tutoriaService.obtenerResumen(tutorId, this.authService.getUserId()).subscribe({
                     next: (resumen) => {
                         if (resumen.estadoTutoria === 'COMPLETADA') {
@@ -122,16 +124,19 @@ export class ProgramarCronogramaComponent implements OnInit {
                             this.mensajeTutoria =
                                 `La tutoría no ha sido completada (${resumen.fasesAprobadas}/3 revisiones aprobadas).`;
                         }
+                        this.cdr.markForCheck();
                     },
                     error: () => {
                         this.validacionTutoria = 'error';
                         this.mensajeTutoria = 'El tutor está asignado pero la tutoría aún no ha iniciado (0/3 revisiones).';
+                        this.cdr.markForCheck();
                     }
                 });
             },
             error: () => {
                 this.validacionTutoria = 'error';
                 this.mensajeTutoria = 'El estudiante no tiene tutor asignado aún.';
+                this.cdr.markForCheck();
             }
         });
     }
@@ -146,18 +151,18 @@ export class ProgramarCronogramaComponent implements OnInit {
                 this.enviando = false;
                 this.cronogramaExistente = c;
                 this.notification.success('Pre-sustentación programada correctamente.', '¡Programado!');
+                this.cdr.markForCheck();
                 setTimeout(() => this.router.navigate(['/dashboard/admin/revisar-solicitudes']), 1500);
             },
             error: (err) => {
                 this.enviando = false;
-                // RF-04: mostrar error de conflicto específico
                 this.errorConflicto = err.error?.error || 'No se pudo programar. Verifica la disponibilidad.';
                 this.notification.error(this.errorConflicto!, 'Conflicto de horario');
+                this.cdr.markForCheck();
             }
         });
     }
 
-    /** RF-04: Asignación automática sin conflictos */
     asignarAutomatico(): void {
         this.asignandoAuto = true;
         this.errorConflicto = null;
@@ -169,11 +174,13 @@ export class ProgramarCronogramaComponent implements OnInit {
                     `Asignado automáticamente: ${this.formatFecha(c.fechaInicio)} — Sala: ${c.sala?.nombre}`,
                     '✓ Cronograma automático'
                 );
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 this.asignandoAuto = false;
                 this.errorConflicto = err.error?.error || 'No se encontró disponibilidad automática.';
                 this.notification.error(this.errorConflicto!, 'Sin disponibilidad');
+                this.cdr.markForCheck();
             }
         });
     }
@@ -181,7 +188,7 @@ export class ProgramarCronogramaComponent implements OnInit {
     eliminarCronograma(): void {
         if (!this.cronogramaExistente) return;
         this.cronogramaService.eliminar(this.cronogramaExistente.id).subscribe({
-            next: () => { this.cronogramaExistente = null; this.notification.success('Cronograma eliminado.', 'Eliminado'); }
+            next: () => { this.cronogramaExistente = null; this.notification.success('Cronograma eliminado.', 'Eliminado'); this.cdr.markForCheck(); }
         });
     }
 

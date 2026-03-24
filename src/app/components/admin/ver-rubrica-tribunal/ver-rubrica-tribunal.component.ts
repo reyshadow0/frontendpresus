@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { RubricaEvaluacionService, EvaluacionRubricaResponse } from '../../../services/rubrica-evaluacion.service';
@@ -28,17 +28,22 @@ export class VerRubricaTribunalComponent implements OnInit {
     constructor(
         private route: ActivatedRoute,
         private rubricaEvalService: RubricaEvaluacionService,
-        private solicitudService: SolicitudService
+        private solicitudService: SolicitudService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
         this.solicitudId = Number(this.route.snapshot.paramMap.get('id'));
-        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => this.solicitud = s);
+        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => {
+            this.solicitud = s;
+            this.cdr.markForCheck();
+        });
 
         this.rubricaEvalService.obtenerEvaluacionesSolicitud(this.solicitudId).subscribe({
-            next: (evals) => { this.evaluaciones = evals; this.cargando = false; },
-            error: () => { this.cargando = false; }
+            next: (evals) => { this.evaluaciones = evals; this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     get evaluadosCount(): number {

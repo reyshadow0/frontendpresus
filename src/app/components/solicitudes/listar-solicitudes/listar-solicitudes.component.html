@@ -48,10 +48,13 @@
           <td><span class="badge" [ngClass]="getBadge(s.estado)">{{ s.estado }}</span></td>
           <td>
             <div class="obs-cell">
-              <span class="obs-empty" *ngIf="!s.observaciones">—</span>
+              <span class="obs-empty" *ngIf="!s.observaciones && s.estado!=='SUSPENDIDA'">—</span>
               <ng-container *ngIf="s.observaciones">
                 <span class="obs-text">{{ s.observaciones | slice:0:30 }}{{ s.observaciones.length > 30 ? '... ' : ' ' }}<button class="btn-ver-mas" (click)="verObservaciones(s.tituloTema, s.observaciones)">Ver más</button></span>
               </ng-container>
+              <div *ngIf="s.estado==='SUSPENDIDA' && s.motivoSuspension" class="obs-suspension">
+                <strong>Motivo de suspensión:</strong> {{ s.motivoSuspension }}
+              </div>
             </div>
           </td>
           <td>
@@ -72,6 +75,15 @@
                         title="Enviar a revisión (requiere PDF)">
                   <i class="bi bi-send"></i> Enviar
                 </button>
+                <!-- Ver Observaciones: visible cuando hay tutor o jurados asignados -->
+                <a class="btn-ac btn-observaciones"
+                   *ngIf="mostrarBotonObservaciones(s.estado)"
+                   [routerLink]="['/dashboard/solicitudes/ver-observaciones', s.id]"
+                   title="Ver observaciones de tutores y jurados">
+                  <i class="bi bi-chat-left-text"></i> Obs.
+                </a>
+                <!-- Suspension badge -->
+                <span *ngIf="s.estado==='SUSPENDIDA'" class="badge badge-suspendida" [title]="s.motivoSuspension || 'Suspendido'">🚫 Suspendido</span>
               </ng-container>
               <!-- Admin / Docente -->
               <ng-container *ngIf="esAdmin()">
@@ -81,6 +93,11 @@
                 <button class="btn-ac btn-rechazar" *ngIf="s.estado==='ENVIADA'" (click)="rechazar(s.id)">
                   <i class="bi bi-x-circle-fill"></i> Rechazar
                 </button>
+                <button class="btn-ac btn-ver-pdf" *ngIf="s.estado==='ENVIADA'"
+                        [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                  <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                </button>
+                <!-- APROBADA -->
                 <button class="btn-ac btn-programar" *ngIf="s.estado==='APROBADA'"
                         [routerLink]="['/dashboard/admin/cronograma', s.id]">
                   <i class="bi bi-calendar-plus"></i> Programar
@@ -89,13 +106,27 @@
                         [routerLink]="['/dashboard/admin/evaluar', s.id]">
                   <i class="bi bi-star-fill"></i> Evaluar
                 </button>
-                <button class="btn-ac btn-ver-pdf"
-                        *ngIf="s.estado==='ENVIADA' || s.estado==='APROBADA'"
+                <!-- TUTORIA -->
+                <button class="btn-ac btn-ver-pdf" *ngIf="s.estado==='TUTORIA'"
+                        [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                  <i class="bi bi-file-earmark-pdf"></i> PDF
+                </button>
+                <!-- EVALUACION -->
+                <button class="btn-ac btn-evaluar" *ngIf="s.estado==='EVALUACION'"
+                        [routerLink]="['/dashboard/admin/evaluar', s.id]">
+                  <i class="bi bi-star-fill"></i> Evaluar
+                </button>
+                <button class="btn-ac btn-ver-pdf" *ngIf="s.estado==='EVALUACION'"
+                        [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
+                  <i class="bi bi-file-earmark-pdf"></i> PDF
+                </button>
+                <!-- CALIFICADA -->
+                <button class="btn-ac btn-ver-pdf" *ngIf="s.estado==='CALIFICADA'"
                         [routerLink]="['/dashboard/docente/anteproyecto', s.id]">
                   <i class="bi bi-file-earmark-pdf"></i> Ver PDF
                 </button>
               </ng-container>
-              <span *ngIf="s.estado==='RECHAZADA'" class="sin-accion">—</span>
+              <span *ngIf="(esAdmin() && (s.estado==='RECHAZADA' || s.estado==='SUSPENDIDA' || s.estado==='COMPLETADA' || s.estado==='CREADA')) || (esEstudiante() && (s.estado==='RECHAZADA' || s.estado==='SUSPENDIDA' || s.estado==='COMPLETADA'))" class="sin-accion">—</span>
             </div>
           </td>
         </tr>

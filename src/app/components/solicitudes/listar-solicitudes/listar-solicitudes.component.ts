@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit, OnDestroy } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -26,7 +26,8 @@ export class ListarSolicitudesComponent implements OnInit, OnDestroy {
         private solicitudService: SolicitudService,
         private notification: NotificationService,
         public authService: AuthService,
-        private estadoService: EstadoService
+        private estadoService: EstadoService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -41,12 +42,14 @@ export class ListarSolicitudesComponent implements OnInit, OnDestroy {
     iniciarPolling(): void {
         this.pollingSubscriptions.forEach(s => s.unsubscribe());
         this.pollingSubscriptions = [];
+        const estadosActivos = ['CREADA', 'ENVIADA', 'APROBADA', 'TUTORIA', 'EVALUACION', 'CALIFICADA'];
         this.solicitudes.forEach(sol => {
-            if (['APROBADA', 'ENVIADA'].includes(sol.estado)) {
+            if (estadosActivos.includes(sol.estado)) {
                 const sub = this.estadoService.pollingEstado(sol.id, 15000).subscribe({
                     next: (est: any) => {
                         if (est.solicitudEstado && est.solicitudEstado !== sol.estado) {
                             sol.estado = est.solicitudEstado;
+                            this.cdr.markForCheck();
                         }
                     }
                 });
@@ -63,8 +66,8 @@ export class ListarSolicitudesComponent implements OnInit, OnDestroy {
             : this.solicitudService.listarSolicitudes();
 
         obs$.subscribe({
-            next: (data) => { this.solicitudes = data; this.iniciarPolling(); this.cargando = false; },
-            error: () => { this.notification.error('No se pudieron cargar las solicitudes.', 'Error'); this.cargando = false; }
+            next: (data) => { this.solicitudes = data; this.iniciarPolling(); this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.notification.error('No se pudieron cargar las solicitudes.', 'Error'); this.cargando = false; this.cdr.markForCheck(); }
         });
     }
 
@@ -75,9 +78,9 @@ export class ListarSolicitudesComponent implements OnInit, OnDestroy {
                 this.cargar();
             },
             error: (err) => {
-                // Backend devuelve 400 con { mensaje: "..." } si falta el PDF
                 const msg = err?.error?.mensaje || 'Debes cargar el PDF del anteproyecto antes de enviar.';
                 this.notification.error(msg, 'No se pudo enviar');
+                this.cdr.markForCheck();
             }
         });
     }
@@ -85,14 +88,14 @@ export class ListarSolicitudesComponent implements OnInit, OnDestroy {
     aprobar(id: number): void {
         this.solicitudService.aprobarSolicitud(id).subscribe({
             next: () => { this.notification.success('Solicitud aprobada.', '✓'); this.cargar(); },
-            error: () => this.notification.error('No se pudo aprobar.', 'Error')
+            error: () => { this.notification.error('No se pudo aprobar.', 'Error'); this.cdr.markForCheck(); }
         });
     }
 
     rechazar(id: number): void {
         this.solicitudService.rechazarSolicitud(id).subscribe({
             next: () => { this.notification.success('Solicitud rechazada.', 'Rechazada'); this.cargar(); },
-            error: () => this.notification.error('No se pudo rechazar.', 'Error')
+            error: () => { this.notification.error('No se pudo rechazar.', 'Error'); this.cdr.markForCheck(); }
         });
     }
 
@@ -108,9 +111,21 @@ export class ListarSolicitudesComponent implements OnInit, OnDestroy {
 
     getBadge(estado: string): string {
         const m: Record<string, string> = {
-            CREADA: 'badge-creada', ENVIADA: 'badge-enviada',
-            APROBADA: 'badge-aprobada', RECHAZADA: 'badge-rechazada'
+            CREADA: 'badge-creada',
+            ENVIADA: 'badge-enviada',
+            APROBADA: 'badge-aprobada',
+            RECHAZADA: 'badge-rechazada',
+            SUSPENDIDA: 'badge-suspendida',
+            TUTORIA: 'badge-tutoria',
+            EVALUACION: 'badge-evaluacion',
+            CALIFICADA: 'badge-calificada',
+            COMPLETADA: 'badge-completada'
         };
         return m[estado] || 'badge-default';
+    }
+
+    mostrarBotonObservaciones(estado: string): boolean {
+        const estadosConObservaciones = ['TUTORIA', 'EVALUACION', 'CALIFICADA', 'COMPLETADA'];
+        return estadosConObservaciones.includes(estado);
     }
 }

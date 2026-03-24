@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CronogramaService } from '../../services/cronograma.service';
@@ -16,19 +16,23 @@ export class MiHorarioComponent implements OnInit {
     cronogramas: any[] = [];
     cargando = true;
 
-    constructor(private cronogramaService: CronogramaService, private authService: AuthService) {}
+    constructor(
+        private cronogramaService: CronogramaService,
+        private authService: AuthService,
+        private cdr: ChangeDetectorRef
+    ) {}
 
     ngOnInit(): void {
         this.cargar();
-        setTimeout(() => { if (this.cargando) this.cargando = false; }, 10000);
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargar(): void {
         this.cargando = true;
         const usuarioId = this.authService.getUserId();
         this.cronogramaService.listarPorUsuario(usuarioId).subscribe({
-            next: (data: any[]) => { this.cronogramas = data; this.cargando = false; },
-            error: () => { this.cargando = false; }
+            next: (data: any[]) => { this.cronogramas = data; this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
     }
 

@@ -1,10 +1,11 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { JuradoService } from '../../services/jurado.service';
 import { AuthService } from '../../services/auth.service';
 import { DocenteService } from '../../services/docente.service';
 import { EvaluacionService } from '../../services/evaluacion.service';
+import { NotificationService } from '../../services/notification.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
@@ -21,46 +22,43 @@ export class MisAsignacionesComponent implements OnInit {
     asignacionesTutor: any[] = [];
     cargando = true;
     docenteId: number | null = null;
-
-    /**
-     * Set de solicitudIds que YA tienen evaluación final registrada por el coordinador.
-     * Para esas solicitudes el botón Evaluar debe estar deshabilitado.
-     */
     solicitudesEvaluadas = new Set<number>();
 
     constructor(
-        private juradoService: JuradoService,
+        private juryService: JuradoService,
         private docenteService: DocenteService,
         private authService: AuthService,
-        private evaluacionService: EvaluacionService
+        private evaluacionService: EvaluacionService,
+        private notificationService: NotificationService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
-        setTimeout(() => { if (this.cargando) this.cargando = false; }, 10000);
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
         const userId = this.authService.getUserId();
         this.docenteService.obtenerPorUsuario(userId).subscribe({
-            next: (docente) => { this.docenteId = docente.id; this.cargarAsignaciones(docente.id); },
-            error: () => { this.cargando = false; }
+            next: (docente) => { this.docenteId = docente.id; this.cargarAsignaciones(docente.id); this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
     }
 
     cargarAsignaciones(docenteId: number): void {
-        this.juradoService.listarPorDocente(docenteId).subscribe({
-            next: (data) => {
+        this.juryService.listarPorDocente(docenteId).subscribe({
+            next: (data: any[]) => {
                 this.asignaciones = data;
                 this.verificarEvaluacionesFinal(data.map((j: any) => j.solicitud?.id).filter(Boolean));
                 this.cargando = false;
+                this.cdr.markForCheck();
             },
-            error: () => { this.cargando = false; }
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
 
-        this.juradoService.listarTutoriasPorDocente(docenteId).subscribe({
-            next: (data) => { this.asignacionesTutor = data; },
-            error: () => { this.asignacionesTutor = []; }
+        this.juryService.listarTutoriasPorDocente(docenteId).subscribe({
+            next: (data: any[]) => { this.asignacionesTutor = data; this.cdr.markForCheck(); },
+            error: () => { this.asignacionesTutor = []; this.cdr.markForCheck(); }
         });
     }
 
-    /** Consulta en paralelo si cada solicitud ya tiene evaluación final del coordinador */
     verificarEvaluacionesFinal(solicitudIds: number[]): void {
         if (solicitudIds.length === 0) return;
 
@@ -73,12 +71,42 @@ export class MisAsignacionesComponent implements OnInit {
 
         forkJoin(checks).subscribe(resultados => {
             resultados.forEach(r => { if (r.existe) this.solicitudesEvaluadas.add(r.id); });
+            this.cdr.markForCheck();
         });
     }
 
-    /** ¿Ya fue evaluada finalmente esta solicitud? */
     yaEvaluada(solicitudId: number): boolean {
         return this.solicitudesEvaluadas.has(solicitudId);
+    }
+
+    /**
+     * Verifica si una solicitud está suspendida
+     */
+    estaSuspendida(solicitud: any): boolean {
+        return solicitud?.estado === 'SUSPENDIDA';
+    }
+
+    /**
+     * Obtiene el mensaje de suspensión de una solicitud
+     */
+    obtenerMotivoSuspension(solicitud: any): string | null {
+        if (solicitud?.estado === 'SUSPENDIDA') {
+            return solicitud.motivoSuspension || 'La solicitud ha sido suspendida por el coordinador.';
+        }
+        return null;
+    }
+
+    /**
+     * Muestra alerta de suspensión y retorna true si está suspendida
+     * Usar con (click)="metodo() && $event.preventDefault()"
+     */
+    verificarSuspension(solicitud: any): boolean {
+        const motivo = this.obtenerMotivoSuspension(solicitud);
+        if (motivo) {
+            this.notificationService.error(motivo, 'Solicitud Suspendida');
+            return true;
+        }
+        return false;
     }
 
     getRolLabel(rol: string): string {
@@ -98,6 +126,7 @@ export class MisAsignacionesComponent implements OnInit {
     getEstadoBadge(estado: string): string {
         const map: Record<string, string> = {
             APROBADA: 'badge-aprobada', ENVIADA: 'badge-enviada', CREADA: 'badge-creada',
+            SUSPENDIDA: 'badge-suspendida',
         };
         return map[estado] || 'badge-default';
     }

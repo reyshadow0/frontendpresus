@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { TutoriaService } from '../../../services/tutoria.service';
@@ -23,7 +23,8 @@ export class MisTutoriasComponent implements OnInit {
     private tutoriaService: TutoriaService,
     private authService: AuthService,
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -35,10 +36,11 @@ export class MisTutoriasComponent implements OnInit {
       : this.tutoriaService.obtenerTutoriasDocente(usuarioId);
 
     peticion.subscribe({
-      next: (data) => { this.tutorias = data; this.cargando = false; },
+      next: (data) => { this.tutorias = data; this.cargando = false; this.cdr.markForCheck(); },
       error: () => {
         this.notificationService.error('No se pudieron cargar las tutorías.', 'Error');
         this.cargando = false;
+        this.cdr.markForCheck();
       }
     });
   }

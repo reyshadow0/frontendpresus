@@ -1,4 +1,4 @@
-import { Component, ViewEncapsulation, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -39,7 +39,8 @@ export class AsignarTribunalComponent implements OnInit {
         private juradoService: JuradoService,
         private docenteService: DocenteService,
         private solicitudService: SolicitudService,
-        private notification: NotificationService
+        private notification: NotificationService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -52,23 +53,24 @@ export class AsignarTribunalComponent implements OnInit {
             docenteId: ['', Validators.required]
         });
         this.cargarDatos();
+        setTimeout(() => { if (this.cargando) { this.cargando = false; this.cdr.markForCheck(); } }, 10000);
     }
 
     cargarDatos(): void {
         this.cargando = true;
-        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => this.solicitud = s);
-        this.docenteService.listar().subscribe(d => this.docentes = d);
+        this.solicitudService.obtenerPorId(this.solicitudId).subscribe(s => { this.solicitud = s; this.cdr.markForCheck(); });
+        this.docenteService.listar().subscribe(d => { this.docentes = d; this.cdr.markForCheck(); });
         this.juradoService.sugerirDocentes(this.solicitudId, 6).subscribe({
-            next: s => this.sugeridos = s,
-            error: () => this.sugeridos = []
+            next: s => { this.sugeridos = s; this.cdr.markForCheck(); },
+            error: () => { this.sugeridos = []; this.cdr.markForCheck(); }
         });
         this.juradoService.listarPorSolicitud(this.solicitudId).subscribe({
-            next: j => { this.jurados = j; this.cargando = false; },
-            error: () => this.cargando = false
+            next: j => { this.jurados = j; this.cargando = false; this.cdr.markForCheck(); },
+            error: () => { this.cargando = false; this.cdr.markForCheck(); }
         });
         this.juradoService.obtenerTutor(this.solicitudId).subscribe({
-            next: t => this.tutor = t,
-            error: () => this.tutor = null
+            next: t => { this.tutor = t; this.cdr.markForCheck(); },
+            error: () => { this.tutor = null; this.cdr.markForCheck(); }
         });
     }
 
@@ -82,11 +84,13 @@ export class AsignarTribunalComponent implements OnInit {
                 this.formJurado.reset();
                 this.enviando = false;
                 this.cargarDatos();
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 const msg = err.error?.error || 'Error al asignar jurado.';
                 this.notification.error(msg, 'Error');
                 this.enviando = false;
+                this.cdr.markForCheck();
             }
         });
     }
@@ -101,11 +105,13 @@ export class AsignarTribunalComponent implements OnInit {
                 this.notification.success('Tutor asignado correctamente.', '✓ Asignado');
                 this.formTutor.reset();
                 this.enviando = false;
+                this.cdr.markForCheck();
             },
             error: (err) => {
                 const msg = err.error?.error || 'Error al asignar tutor.';
                 this.notification.error(msg, 'Error');
                 this.enviando = false;
+                this.cdr.markForCheck();
             }
         });
     }

@@ -27,12 +27,18 @@
 .badge-enviada   { background: #dbeafe; color: #1e40af; }
 .badge-aprobada  { background: #dcfce7; color: #166534; }
 .badge-rechazada { background: #fee2e2; color: #991b1b; }
+.badge-suspendida { background: #fef3c7; color: #92400e; }
+.badge-tutoria   { background: #e0e7ff; color: #3730a3; }
+.badge-evaluacion { background: #fae8ff; color: #6b21a8; }
+.badge-calificada { background: #dcfce7; color: #15803d; }
+.badge-completada { background: #0d9488; color: #ffffff; }
 .badge-default   { background: #f1f5f9; color: #475569; }
 .acciones-cell { display: flex; gap: 5px; flex-wrap: wrap; }
 .btn-ac { display:inline-flex;align-items:center;gap:3px;padding:5px 10px;border:none;border-radius:7px;font-size:0.76rem;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap; }
 .btn-ac:hover { opacity:0.8; transform:translateY(-1px); }
 .btn-enviar    { background:#dbeafe;color:#1e40af; }
 .btn-pdf       { background:#fee2e2;color:#991b1b; }
+.btn-observaciones { background:#e0e7ff;color:#3730a3; }
 .btn-aprobar   { background:#dcfce7;color:#166534; }
 .btn-rechazar  { background:#fee2e2;color:#991b1b; }
 .btn-programar { background:#dbeafe;color:#1e40af; }
@@ -66,6 +72,15 @@
 .obs-empty {
     color: #94a3b8;
     font-size: 0.82rem;
+}
+.obs-suspension {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    color: #92400e;
+    margin-top: 4px;
 }
 .btn-ver-mas {
     display: inline !important;
@@ -314,6 +329,10 @@ body.dark-mode .badge-rechazada,
 body.dark-mode .badge-rechazado,
 body.dark-mode .badge-reprobado { background: #2d0f0f !important; color: #f85149 !important; }
 body.dark-mode .badge-enviado  { background: #0d1f3a !important; color: #79c0ff !important; }
+body.dark-mode .badge-tutoria  { background: #1e1b4b !important; color: #a5b4fc !important; }
+body.dark-mode .badge-evaluacion { background: #2e1065 !important; color: #d8b4fe !important; }
+body.dark-mode .badge-calificada { background: #14532d !important; color: #86efac !important; }
+body.dark-mode .badge-completada { background: #0f766e !important; color: #ffffff !important; }
 
 /* Chips / tags */
 body.dark-mode .mod-chip,
